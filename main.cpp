@@ -87,7 +87,7 @@ int16_t onStepCompleted(cv::Mat &statFrame, double deltaSensorData,
 #endif
 
 #ifdef __linux__
-#define DEVICE_PORT "/dev/ttyS0" // ttyS0 for linux, otherwise ttyUSB0, if it does not open try: sudo chmod 666 /dev/ttyS0
+#define DEVICE_PORT "/dev/ttyUSB0" // ttyS0 for linux, otherwise ttyUSB0, if it does not open try: sudo chmod 666 /dev/ttyS0 or ttyUSB0
 #endif
 
 double calculateErrorValue(Mat &frame, Mat &output) {
