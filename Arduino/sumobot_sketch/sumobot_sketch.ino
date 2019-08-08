@@ -30,6 +30,7 @@ void setup() {
 
 	servoLeft.writeMicroseconds(speedLeft);
 	servoRight.writeMicroseconds(speedRight);
+
 	}
 
 void lineSensors() {
@@ -75,4 +76,3 @@ void loop() {
 			}
 	}
 }
-

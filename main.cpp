@@ -33,7 +33,7 @@ boost::circular_buffer<double> prevErrors(30 * 60);
 
 int16_t onStepCompleted(cv::Mat &statFrame, double deltaSensorData,
                         std::vector<float> &predictorDeltas) {
-  prevErrors.push_back(deltaSensorData); //puts the errors in a buffer
+  prevErrors.push_back(deltaSensorData); //puts the errors in a buffer for plotting
 
   double errorGain = 5;
   double error = errorGain * deltaSensorData;
