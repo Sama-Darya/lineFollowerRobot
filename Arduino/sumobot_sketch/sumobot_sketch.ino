@@ -11,8 +11,8 @@ float ErrorOut = 0.00;
 float sensorLeft = 0;
 float sensorRight = 0;
 int motorStopL = 1500; // Motor stop uS
-int motorStopR = 1520; // Motor stop uS
-int motorSpeed = 50; // Constant fwd speed
+int motorStopR = 1530; // Motor stop uS
+int motorSpeed = 20; // Constant fwd speed
 int errorMulti = 100; // Error multiplier
 int speedLeft = motorStopL + motorSpeed; // Left constant speed
 int speedRight = motorStopR - motorSpeed; // Right constant speed
@@ -54,8 +54,8 @@ void loop() {
 	//sensorRight = digitalRead(A5);
 
    // int8_t deltaError = sensorLeft - sensorRight;
-  int8_t deltaError = 0;
-	Serial.write((uint8_t *)&deltaError, sizeof(deltaError));
+  //int8_t deltaError = 0;
+	//Serial.write((uint8_t *)&deltaError, sizeof(deltaError));
 
 	while(Serial.available() > 0) {
 		//received = Serial.readString();
