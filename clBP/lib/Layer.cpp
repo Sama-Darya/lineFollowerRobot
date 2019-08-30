@@ -29,6 +29,7 @@ Layer::~Layer(){
 }
 
 void Layer::setInputs(const double* _inputs){
+    /*this is only for the first layer*/
     inputs=_inputs;
     for (int j=0; j<nInputs; j++){
         Neuron** neuronsp = neurons;//point to the 1st neuron

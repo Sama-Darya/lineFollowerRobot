@@ -1,6 +1,7 @@
 #include "neural.h"
 #include "clbp/Net.h"
 
+
 #include "cvui.h"
 #include <chrono>
 #include <fstream>
@@ -32,7 +33,7 @@ static void initialize_filters(int numInputs, float sampleRate) {
 std::unique_ptr<Net> samanet;
 
 void initialize_samanet(int numInputLayers, float sampleRate) {
-  numInputLayers *= 5;
+  numInputLayers *= 5; // due to the number of filters
 
   int nNeurons[] = {16, 8, 1};
   samanet = std::make_unique<Net>(3, nNeurons, numInputLayers);
@@ -60,8 +61,10 @@ double run_samanet(cv::Mat &statFrame, std::vector<float> &predictorDeltas,
   networkInputs.reserve(predictorDeltas.size() * 5);
   for (int j = 0; j < predictorDeltas.size(); ++j) {
     float sample = predictorDeltas[j];
+    //cout << "predictor value is: " << sample << endl;
     for (auto &filt : bandpassFilters[j]) {
       auto filtered = filt.filter(sample);
+      //cout << "predictor value is: " << filtered << endl;
       networkInputs.push_back(filtered);
       if (j == 0) {
         unfilteredout << "," << sample;
@@ -70,15 +73,20 @@ double run_samanet(cv::Mat &statFrame, std::vector<float> &predictorDeltas,
     }
   }
 
+  samanet->setInputs(networkInputs.data()); //then take a new action
+  samanet->propInputs();
+
   samanet->setError(error);
   samanet->propError();
   samanet->updateWeights(); // Learn from previous action
 
-  samanet->setInputs(networkInputs.data());
-  samanet->propInputs();
+  double resultNN = samanet->getOutput(0);
+  cout << "in runsamanet resultNN is: " << resultNN << endl;
 
   //weightDistancesfs << ms.count() << "," << samanet->getWeightDistanceLayer(0) << "," << samanet->getWeightDistanceLayer(1) << "," << samanet->getWeightDistanceLayer(2) << "\n";
-  return samanet->getOutput(0); //then take a new action
+  return resultNN;
 }
 
-void dump_samanet() { samanet->saveWeights(); }
+void save_samanet() { samanet->saveWeights(); }
+
+

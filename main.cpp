@@ -1,6 +1,7 @@
 #include "opencv2/opencv.hpp"
 #include "serialib.h"
 
+
 #include <boost/circular_buffer.hpp>
 #include <chrono>
 #include <cstdlib>
@@ -13,6 +14,16 @@
 #define CVUI_IMPLEMENTATION
 #include "cvui.h"
 
+#if defined(_WIN32) || defined(_WIN64)
+#define DEVICE_PORT "COM4" // COM1 for windows
+#endif
+
+#ifdef __linux__
+#define DEVICE_PORT "/dev/ttyUSB0" // This is for Arduino, ttyS0 for linux, otherwise ttyUSB0, if it does not open try: sudo chmod 666 /dev/ttyS0 or ttyUSB0
+#endif
+
+#define STAT_WINDOW "statistics & options"
+
 using namespace cv;
 using namespace std;
 constexpr int ESC_key = 27;
@@ -21,34 +32,36 @@ static constexpr int nPredictorCols = 6;
 static constexpr int nPredictorRows = 8;
 static constexpr int nPredictors = nPredictorCols * nPredictorRows;
 
-double errorMult = 1.5;
-double nnMult = 10.0;
+double errorMult = 1;
+double nnMult = 0;
 
 std::ofstream datafs("data.csv");
 
 using clk = std::chrono::system_clock;
 clk::time_point start_time;
 
-boost::circular_buffer<double> prevErrors(30 * 60);
+boost::circular_buffer<double> prevErrors(30 * 60); // 30Hz is the sampling frequency, this accumulate data for one minute
 
 int16_t onStepCompleted(cv::Mat &statFrame, double deltaSensorData,
                         std::vector<float> &predictorDeltas) {
   prevErrors.push_back(deltaSensorData); //puts the errors in a buffer for plotting
 
-  double errorGain = 5;
+  double errorGain = 1;
   double error = errorGain * deltaSensorData;
 
-  int gain = 15;
+  int gain = 20;
 
   cvui::text(statFrame, 10, 320, "Sensor Error Multiplier: ");
-  cvui::trackbar(statFrame, 180, 300, 400, &errorMult, (double)0.0, (double)5.0,
+  cvui::trackbar(statFrame, 180, 300, 400, &errorMult, (double)0.0, (double)10.0,
                  1, "%.2Lf", 0, 0.05);
 
   cvui::text(statFrame, 10, 370, "Net Output Multiplier: ");
   cvui::trackbar(statFrame, 180, 350, 400, &nnMult, (double)0.0, (double)10.0,
                  1, "%.2Lf", 0, 0.05);
 
-  double result = run_samanet(statFrame, predictorDeltas, deltaSensorData / 5); //does one learning iteration
+  double result = run_samanet(statFrame, predictorDeltas, deltaSensorData);// / 5); //does one learning iteration
+	cout<< "inside onStepComplete result: " << result << endl;
+
 
   cvui::text(statFrame, 220, 10, "Net out:");
   cvui::printf(statFrame, 300, 10, "%+.4lf", result);
@@ -68,7 +81,8 @@ int16_t onStepCompleted(cv::Mat &statFrame, double deltaSensorData,
     cvui::printf(statFrame, 540, 250, "%.2fs", elapsed_s);
   }
   double error2 = (error * errorMult + result * nnMult) * gain;
-  int16_t differentialOut = (int16_t)(error2 * 0.5);
+  int16_t differentialOut = (int16_t)(error2 * 1);
+  cout<< "inside onStepComplete differentialOut: " << differentialOut << endl;
 
   using namespace std::chrono;
   milliseconds ms =
@@ -82,22 +96,14 @@ int16_t onStepCompleted(cv::Mat &statFrame, double deltaSensorData,
   return differentialOut;
 }
 
-#if defined(_WIN32) || defined(_WIN64)
-#define DEVICE_PORT "COM4" // COM1 for windows
-#endif
-
-#ifdef __linux__
-#define DEVICE_PORT "/dev/ttyUSB0" // ttyS0 for linux, otherwise ttyUSB0, if it does not open try: sudo chmod 666 /dev/ttyS0 or ttyUSB0
-#endif
-
-double calculateErrorValue(Mat &frame, Mat &output) {
+double calculateErrorValue(Mat &origframe, Mat &output) {
   constexpr int numErrorSensors = 5;
   int areaWidth = 400;
-  int areaHeight = 30;
+  int areaHeight = 40;
   int offsetFromBottom = 0;
-  int whiteSensorThreshold = 190;
-  int startX = (frame.cols - areaWidth) / 2;
-  auto area = Rect{startX, frame.rows - areaHeight - offsetFromBottom,
+  int whiteSensorThreshold = 70;
+  int startX = (origframe.cols - areaWidth) / 2;
+  auto area = Rect{startX, origframe.rows - areaHeight - offsetFromBottom,
                    areaWidth, areaHeight};
 
   int areaMiddleLine = area.width / 2 + area.x;
@@ -109,8 +115,14 @@ double calculateErrorValue(Mat &frame, Mat &output) {
 
   sensorWeights[numErrorSensors - 1] = 1;
   for (int j = numErrorSensors - 2; j >= 0; --j) {
-    sensorWeights[j] = sensorWeights[j + 1] * 0.60;
+    sensorWeights[j] = 1; //sensorWeights[j + 1] * 0.60;
   }
+  sensorWeights[0] = 0;
+  sensorWeights[1] = 0;
+  sensorWeights[2] = 1;
+sensorWeights[3] = 2;
+sensorWeights[4] = 3;
+
 
   int numTriggeredPairs = 0;
   double error = 0;
@@ -121,8 +133,8 @@ double calculateErrorValue(Mat &frame, Mat &output) {
     auto rPred = Rect(areaMiddleLine + 30 + (j)*sensorWidth, area.y,
                       sensorWidth, sensorHeight);
 
-    double grayMeanL = (mean(Mat(frame, lPred))[0]) > whiteSensorThreshold;
-    double grayMeanR = (mean(Mat(frame, rPred))[0]) > whiteSensorThreshold;
+    double grayMeanL = (mean(Mat(origframe, lPred))[0]) < whiteSensorThreshold;
+    double grayMeanR = (mean(Mat(origframe, rPred))[0]) < whiteSensorThreshold;
 
     auto diff = (grayMeanR - grayMeanL);
     numTriggeredPairs += (diff != 0);
@@ -144,24 +156,22 @@ double calculateErrorValue(Mat &frame, Mat &output) {
   return numTriggeredPairs ? error / numTriggeredPairs : 0;
 }
 
-#define STAT_WINDOW "statistics & options"
 int main(int, char **) {
-  srand(0);
+  srand(0); //random number generator
   cv::namedWindow("robot view");
   cvui::init(STAT_WINDOW);
 
   auto statFrame = cv::Mat(400, 600, CV_8UC3);
   initialize_samanet(nPredictors);
-  serialib LS;
-  char Ret = LS.Open(DEVICE_PORT, 115200);
+  serialib LS; // for arduino
+  char Ret = LS.Open(DEVICE_PORT, 115200); // for arduino
   if (Ret != 1) { // If an error occured...
     printf("Error while opening port. Permission problem ?\n"); // ... display a
                                                                 // message ...
     return Ret; // ... quit the application
   }
   printf("Serial port opened successfully !\n");
-  VideoCapture cap(
-      2); // open the on-board camera. This parameter might need to change.
+  VideoCapture cap(0); // open the on-board camera. This parameter might need to change. this has to be 0 for RaspberryPi
 
   if (!cap.isOpened()) {
     printf("The selected video capture device is not available.\n");
@@ -179,9 +189,15 @@ int main(int, char **) {
     statFrame = cv::Scalar(49, 52, 49);
     predictorDeltaMeans.clear();
 
-    Mat frame;
-    cap >> frame; // get a new frame from camera
+    Mat origframe, frame;
+    cap >> origframe; // get a new frame from camera
+
+      //flip the image
+    flip(origframe,frame,-1); // 0 horizontal, 1 vertical, -1 both
+
     cvtColor(frame, edges, COLOR_BGR2GRAY);
+
+
 
     // Define the rect area that we want to consider.
 
@@ -224,20 +240,22 @@ int main(int, char **) {
     }
 
     double err = calculateErrorValue(edges, frame);
+    cout<<"bottom line sensor error is: "<< err <<endl;
 
     line(frame, {areaMiddleLine, 0}, {areaMiddleLine, frame.rows},
          Scalar(50, 50, 255));
     imshow("robot view", frame);
 
-    int8_t ping = 0;
-    Ret = LS.Read(&ping, sizeof(ping));
+    //int8_t ping = 0;
+    //Ret = LS.Read(&ping, sizeof(ping));
 
-    if (Ret > 0) {
+    //if (Ret > 0) {
 
       int16_t error = onStepCompleted(statFrame, err, predictorDeltaMeans);
 
       Ret = LS.Write(&error, sizeof(error));
-    }
+	cout<<"speed error is: "<< error <<endl;
+    //}
 
     cvui::update();
 
@@ -247,6 +265,6 @@ int main(int, char **) {
       break;
   }
 
-  dump_samanet();
+  save_samanet();
   return 0;
 }
