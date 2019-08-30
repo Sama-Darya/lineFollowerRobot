@@ -18,8 +18,8 @@ std::vector<std::array<Bandpass, 5>> bandpassFilters;
 static void initialize_filters(int numInputs, float sampleRate) {
   bandpassFilters.resize(numInputs);
   double fs = 1;
-  double fmin = fs / 39;
-  double fmax = fs / 9;
+  double fmin = fs / 29;
+  double fmax = fs / 3;
   double df = (fmax - fmin) / 4.0;
   for (auto &bank : bandpassFilters) {
     double f = fmin;
@@ -44,8 +44,7 @@ void initialize_samanet(int numInputLayers, float sampleRate) {
 }
 
 std::ofstream weightDistancesfs("weight_distances.csv");
-std::ofstream filterout("filterouts.csv");
-std::ofstream unfilteredout("unfilteredouts.csv");
+std::ofstream predictor("predictor.csv");
 
 double run_samanet(cv::Mat &statFrame, std::vector<float> &predictorDeltas,
                    double error) {
@@ -56,19 +55,21 @@ double run_samanet(cv::Mat &statFrame, std::vector<float> &predictorDeltas,
 
   std::vector<double> networkInputs;
 
-  filterout << "\n" << ms.count();
-  unfilteredout << "\n" << ms.count();
+  predictor << "\n" << ms.count();
+  predictor << " " << error;
   networkInputs.reserve(predictorDeltas.size() * 5);
   for (int j = 0; j < predictorDeltas.size(); ++j) {
     float sample = predictorDeltas[j];
+      if (j == 0) {
+        predictor << " " << sample;
+      }
     //cout << "predictor value is: " << sample << endl;
     for (auto &filt : bandpassFilters[j]) {
       auto filtered = filt.filter(sample);
       //cout << "predictor value is: " << filtered << endl;
       networkInputs.push_back(filtered);
       if (j == 0) {
-        unfilteredout << "," << sample;
-        filterout << "," << filtered;
+        predictor << " " << filtered;
       }
     }
   }
