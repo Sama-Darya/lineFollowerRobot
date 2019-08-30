@@ -100,9 +100,9 @@ int16_t onStepCompleted(cv::Mat &statFrame, double deltaSensorData,
 }
 
 double calculateErrorValue(Mat &origframe, Mat &output) {
-  constexpr int numErrorSensors = 6;
-  int areaWidth = 600;
-  int areaHeight = 40;
+  constexpr int numErrorSensors = 5;
+  int areaWidth = 400;
+  int areaHeight = 30;
   int offsetFromBottom = 0;
   int blackSensorThreshold = 70;
   int startX = (origframe.cols - areaWidth) / 2;
@@ -126,7 +126,6 @@ double calculateErrorValue(Mat &origframe, Mat &output) {
     sensorWeights[2] = 1;
     sensorWeights[3] = 2;
     sensorWeights[4] = 3;
-    sensorWeights[5] = 4;
 
 
   int numTriggeredPairs = 0;
@@ -221,8 +220,8 @@ int main(int, char **) {
 
     // Define the rect area that we want to consider.
 
-    int areaWidth = 800; // 500;
-    int areaHeight = 400;
+    int areaWidth = 400; // 500;
+    int areaHeight = 200;
     int offsetFromTop = 100;
     int startX = (frame.cols - areaWidth) / 2;
     auto area = Rect{startX, offsetFromTop, areaWidth, areaHeight};
