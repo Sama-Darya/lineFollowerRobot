@@ -284,6 +284,6 @@ int main(int, char **) {
       break;
   }
 
-  save_samanet();
+  //save_samanet();
   return 0;
 }

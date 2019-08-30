@@ -55,7 +55,7 @@ double run_samanet(cv::Mat &statFrame, std::vector<float> &predictorDeltas,
 
   std::vector<double> networkInputs;
 
-  predictor << "\n" << ms.count();
+  //predictor << ms.count();
   predictor << " " << error;
   networkInputs.reserve(predictorDeltas.size() * 5);
   for (int j = 0; j < predictorDeltas.size(); ++j) {
@@ -73,6 +73,7 @@ double run_samanet(cv::Mat &statFrame, std::vector<float> &predictorDeltas,
       }
     }
   }
+  predictor << "\n" ;
 
   samanet->setInputs(networkInputs.data()); //then take a new action
   samanet->propInputs();
@@ -80,11 +81,14 @@ double run_samanet(cv::Mat &statFrame, std::vector<float> &predictorDeltas,
   samanet->setError(error);
   samanet->propError();
   samanet->updateWeights(); // Learn from previous action
+  
+  save_samanet();
 
-  double resultNN = samanet->getOutput(0);
+  weightDistancesfs << samanet->getWeightDistance() << "\n";
+  
+    double resultNN = samanet->getOutput(0);
   //cout << "in runsamanet resultNN is: " << resultNN << endl;
-
-  //weightDistancesfs << ms.count() << "," << samanet->getWeightDistanceLayer(0) << "," << samanet->getWeightDistanceLayer(1) << "," << samanet->getWeightDistanceLayer(2) << "\n";
+  
   return resultNN;
 }
 
