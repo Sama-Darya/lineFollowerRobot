@@ -40,7 +40,10 @@ std::ofstream datafs("data.csv");
 using clk = std::chrono::system_clock;
 clk::time_point start_time;
 
-boost::circular_buffer<double> prevErrors(30 * 60); // 30Hz is the sampling frequency, this accumulate data for one minute
+int samplingFreq = 30; // 30Hz is the sampling frequency
+int figureLength = 60; //seconds
+
+boost::circular_buffer<double> prevErrors(samplingFreq * figureLength); // this accumulate data for one minute
 
 int16_t onStepCompleted(cv::Mat &statFrame, double deltaSensorData,
                         std::vector<float> &predictorDeltas) {
@@ -49,7 +52,7 @@ int16_t onStepCompleted(cv::Mat &statFrame, double deltaSensorData,
   double errorGain = 1;
   double error = errorGain * deltaSensorData;
 
-  int gain = 20;
+  int gain = 10;
 
   cvui::text(statFrame, 10, 320, "Sensor Error Multiplier: ");
   cvui::trackbar(statFrame, 180, 300, 400, &errorMult, (double)0.0, (double)10.0,
@@ -59,8 +62,8 @@ int16_t onStepCompleted(cv::Mat &statFrame, double deltaSensorData,
   cvui::trackbar(statFrame, 180, 350, 400, &nnMult, (double)0.0, (double)10.0,
                  1, "%.2Lf", 0, 0.05);
 
-  double result = run_samanet(statFrame, predictorDeltas, deltaSensorData);// / 5); //does one learning iteration
-	cout<< "inside onStepComplete result: " << result << endl;
+  double result = run_samanet(statFrame, predictorDeltas, deltaSensorData / 5); //does one learning iteration, why divide by 5?
+	//cout<< "inside onStepComplete result: " << result << endl;
 
 
   cvui::text(statFrame, 220, 10, "Net out:");
@@ -97,11 +100,11 @@ int16_t onStepCompleted(cv::Mat &statFrame, double deltaSensorData,
 }
 
 double calculateErrorValue(Mat &origframe, Mat &output) {
-  constexpr int numErrorSensors = 5;
-  int areaWidth = 400;
+  constexpr int numErrorSensors = 6;
+  int areaWidth = 600;
   int areaHeight = 40;
   int offsetFromBottom = 0;
-  int whiteSensorThreshold = 70;
+  int blackSensorThreshold = 70;
   int startX = (origframe.cols - areaWidth) / 2;
   auto area = Rect{startX, origframe.rows - areaHeight - offsetFromBottom,
                    areaWidth, areaHeight};
@@ -113,35 +116,33 @@ double calculateErrorValue(Mat &origframe, Mat &output) {
 
   std::array<double, numErrorSensors> sensorWeights;
 
-  sensorWeights[numErrorSensors - 1] = 1;
-  for (int j = numErrorSensors - 2; j >= 0; --j) {
-    sensorWeights[j] = 1; //sensorWeights[j + 1] * 0.60;
-  }
-  sensorWeights[0] = 0;
-  sensorWeights[1] = 0;
-  sensorWeights[2] = 1;
-sensorWeights[3] = 2;
-sensorWeights[4] = 3;
+//  sensorWeights[numErrorSensors - 1] = 1;
+//  for (int j = numErrorSensors - 2; j >= 0; --j) {
+//    sensorWeights[j] = 1; //sensorWeights[j + 1] * 0.60;
+//  }
+
+    sensorWeights[0] = 0;
+    sensorWeights[1] = 0;
+    sensorWeights[2] = 1;
+    sensorWeights[3] = 2;
+    sensorWeights[4] = 3;
+    sensorWeights[5] = 4;
 
 
   int numTriggeredPairs = 0;
   double error = 0;
 
   for (int j = 0; j < numErrorSensors; ++j) {
-    auto lPred = Rect(areaMiddleLine - 30 - (j + 1) * sensorWidth, area.y,
-                      sensorWidth, sensorHeight);
-    auto rPred = Rect(areaMiddleLine + 30 + (j)*sensorWidth, area.y,
-                      sensorWidth, sensorHeight);
+      auto lPred = Rect(areaMiddleLine - 30 - (j + 1) * sensorWidth, area.y,
+                        sensorWidth, sensorHeight);
+      auto rPred = Rect(areaMiddleLine + 30 + (j) * sensorWidth, area.y,
+                        sensorWidth, sensorHeight);
 
-    double grayMeanL = (mean(Mat(origframe, lPred))[0]) < whiteSensorThreshold;
-    double grayMeanR = (mean(Mat(origframe, rPred))[0]) < whiteSensorThreshold;
+      auto grayMeanL = mean(Mat(origframe, lPred))[0]; // (mean(Mat(origframe, lPred))[0]) < blackSensorThreshold;
+      auto grayMeanR = mean(Mat(origframe, rPred))[0]; // (mean(Mat(origframe, rPred))[0]) < blackSensorThreshold;
 
-    auto diff = (grayMeanR - grayMeanL);
-    numTriggeredPairs += (diff != 0);
-
-    error += diff * sensorWeights[j];
-
-    putText(
+      error += (grayMeanR - grayMeanL) * sensorWeights[j];
+      putText(
         output, std::to_string((int)grayMeanL),
         Point{lPred.x + lPred.width / 2 - 5, lPred.y + lPred.height / 2 + 5},
         FONT_HERSHEY_TRIPLEX, 0.6, {0, 0, 0});
@@ -153,7 +154,26 @@ sensorWeights[4] = 3;
     rectangle(output, rPred, Scalar(50, 50, 50));
   }
 
-  return numTriggeredPairs ? error / numTriggeredPairs : 0;
+    return error/255;
+
+//    auto diff = (grayMeanR - grayMeanL);
+//    numTriggeredPairs += (diff != 0);
+//
+//    error += diff * sensorWeights[j];
+//
+//    putText(
+//        output, std::to_string((int)grayMeanL),
+//        Point{lPred.x + lPred.width / 2 - 5, lPred.y + lPred.height / 2 + 5},
+//        FONT_HERSHEY_TRIPLEX, 0.6, {0, 0, 0});
+//    putText(
+//        output, std::to_string((int)grayMeanR),
+//        Point{rPred.x + rPred.width / 2 - 5, rPred.y + rPred.height / 2 + 5},
+//        FONT_HERSHEY_TRIPLEX, 0.6, {0, 0, 0});
+//    rectangle(output, lPred, Scalar(50, 50, 50));
+//    rectangle(output, rPred, Scalar(50, 50, 50));
+//  }
+//
+//  return numTriggeredPairs ? error / numTriggeredPairs : 0;
 }
 
 int main(int, char **) {
@@ -201,9 +221,9 @@ int main(int, char **) {
 
     // Define the rect area that we want to consider.
 
-    int areaWidth = 400; // 500;
-    int areaHeight = 200;
-    int offsetFromTop = 150;
+    int areaWidth = 800; // 500;
+    int areaHeight = 400;
+    int offsetFromTop = 100;
     int startX = (frame.cols - areaWidth) / 2;
     auto area = Rect{startX, offsetFromTop, areaWidth, areaHeight};
 
@@ -239,8 +259,8 @@ int main(int, char **) {
       }
     }
 
-    double err = calculateErrorValue(edges, frame);
-    cout<<"bottom line sensor error is: "<< err <<endl;
+    double sensorError = calculateErrorValue(edges, frame);
+    //cout<<"bottom line sensor error is: "<< sensorError <<endl;
 
     line(frame, {areaMiddleLine, 0}, {areaMiddleLine, frame.rows},
          Scalar(50, 50, 255));
@@ -251,10 +271,10 @@ int main(int, char **) {
 
     //if (Ret > 0) {
 
-      int16_t error = onStepCompleted(statFrame, err, predictorDeltaMeans);
+      int16_t speedError = onStepCompleted(statFrame, sensorError, predictorDeltaMeans);
 
-      Ret = LS.Write(&error, sizeof(error));
-	cout<<"speed error is: "<< error <<endl;
+      Ret = LS.Write(&speedError, sizeof(speedError));
+	  //cout<<"speed error is: "<< speedError <<endl;
     //}
 
     cvui::update();

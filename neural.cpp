@@ -81,7 +81,7 @@ double run_samanet(cv::Mat &statFrame, std::vector<float> &predictorDeltas,
   samanet->updateWeights(); // Learn from previous action
 
   double resultNN = samanet->getOutput(0);
-  cout << "in runsamanet resultNN is: " << resultNN << endl;
+  //cout << "in runsamanet resultNN is: " << resultNN << endl;
 
   //weightDistancesfs << ms.count() << "," << samanet->getWeightDistanceLayer(0) << "," << samanet->getWeightDistanceLayer(1) << "," << samanet->getWeightDistanceLayer(2) << "\n";
   return resultNN;
