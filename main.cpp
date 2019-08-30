@@ -140,7 +140,7 @@ double calculateErrorValue(Mat &origframe, Mat &output) {
       auto grayMeanL = mean(Mat(origframe, lPred))[0]; // (mean(Mat(origframe, lPred))[0]) < blackSensorThreshold;
       auto grayMeanR = mean(Mat(origframe, rPred))[0]; // (mean(Mat(origframe, rPred))[0]) < blackSensorThreshold;
 
-      error += (grayMeanR - grayMeanL) * sensorWeights[j];
+      error += (grayMeanL - grayMeanR) * sensorWeights[j]; // if binary use R -L
       putText(
         output, std::to_string((int)grayMeanL),
         Point{lPred.x + lPred.width / 2 - 5, lPred.y + lPred.height / 2 + 5},
