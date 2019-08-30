@@ -32,8 +32,8 @@ static constexpr int nPredictorCols = 6;
 static constexpr int nPredictorRows = 8;
 static constexpr int nPredictors = nPredictorCols * nPredictorRows;
 
-double errorMult = 1;
-double nnMult = 0;
+double errorMult = 10;
+double nnMult = 10;
 
 std::ofstream datafs("data.csv");
 
@@ -52,18 +52,18 @@ int16_t onStepCompleted(cv::Mat &statFrame, double deltaSensorData,
   double errorGain = 1;
   double error = errorGain * deltaSensorData;
 
-  int gain = 10;
+  int gain = 1;
 
   cvui::text(statFrame, 10, 320, "Sensor Error Multiplier: ");
-  cvui::trackbar(statFrame, 180, 300, 400, &errorMult, (double)0.0, (double)10.0,
+  cvui::trackbar(statFrame, 180, 300, 400, &errorMult, (double)0.0, (double)50.0,
                  1, "%.2Lf", 0, 0.05);
 
   cvui::text(statFrame, 10, 370, "Net Output Multiplier: ");
-  cvui::trackbar(statFrame, 180, 350, 400, &nnMult, (double)0.0, (double)10.0,
+  cvui::trackbar(statFrame, 180, 350, 400, &nnMult, (double)0.0, (double)100.0,
                  1, "%.2Lf", 0, 0.05);
 
-  double result = run_samanet(statFrame, predictorDeltas, deltaSensorData / 5); //does one learning iteration, why divide by 5?
-	//cout<< "inside onStepComplete result: " << result << endl;
+  double result = run_samanet(statFrame, predictorDeltas, deltaSensorData); //does one learning iteration, why divide by 5?
+	cout<< "inside onStepComplete result: " << result << endl;
 
 
   cvui::text(statFrame, 220, 10, "Net out:");
@@ -121,8 +121,8 @@ double calculateErrorValue(Mat &origframe, Mat &output) {
 //    sensorWeights[j] = 1; //sensorWeights[j + 1] * 0.60;
 //  }
 
-    sensorWeights[0] = 0;
-    sensorWeights[1] = 0;
+    sensorWeights[0] = 0.1;
+    sensorWeights[1] = 0.5;
     sensorWeights[2] = 1;
     sensorWeights[3] = 2;
     sensorWeights[4] = 3;
@@ -153,7 +153,7 @@ double calculateErrorValue(Mat &origframe, Mat &output) {
     rectangle(output, rPred, Scalar(50, 50, 50));
   }
 
-    return error/255;
+    return error/(255 * numErrorSensors);
 
 //    auto diff = (grayMeanR - grayMeanL);
 //    numTriggeredPairs += (diff != 0);
@@ -220,7 +220,7 @@ int main(int, char **) {
 
     // Define the rect area that we want to consider.
 
-    int areaWidth = 400; // 500;
+    int areaWidth = 500; // 500;
     int areaHeight = 200;
     int offsetFromTop = 100;
     int startX = (frame.cols - areaWidth) / 2;

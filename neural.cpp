@@ -18,9 +18,9 @@ std::vector<std::array<Bandpass, 5>> bandpassFilters;
 static void initialize_filters(int numInputs, float sampleRate) {
   bandpassFilters.resize(numInputs);
   double fs = 1;
-  double fmin = fs / 29;
-  double fmax = fs / 3;
-  double df = (fmax - fmin) / 4.0;
+  double fmin = fs / 39;
+  double fmax = fs / 13;
+  double df = (fmax - fmin) / 4.0; // 4 is number of filters minus 1
   for (auto &bank : bandpassFilters) {
     double f = fmin;
     for (auto &filt : bank) {
@@ -33,12 +33,12 @@ static void initialize_filters(int numInputs, float sampleRate) {
 std::unique_ptr<Net> samanet;
 
 void initialize_samanet(int numInputLayers, float sampleRate) {
-  numInputLayers *= 5; // due to the number of filters
+  numInputLayers *= 5; // 5 is the number of filters
 
   int nNeurons[] = {16, 8, 1};
   samanet = std::make_unique<Net>(3, nNeurons, numInputLayers);
-  samanet->initNetwork(Neuron::W_RANDOM, Neuron::B_NONE, Neuron::Act_Sigmoid);
-  samanet->setLearningRate(0.05);
+  samanet->initNetwork(Neuron::W_RANDOM, Neuron::B_NONE, Neuron::Act_Tanh);
+  samanet->setLearningRate(0.1);
 
   initialize_filters(numInputLayers, sampleRate);
 }
@@ -84,10 +84,10 @@ double run_samanet(cv::Mat &statFrame, std::vector<float> &predictorDeltas,
   
   save_samanet();
 
-  weightDistancesfs << samanet->getWeightDistance() << "\n";
-  
-    double resultNN = samanet->getOutput(0);
-  //cout << "in runsamanet resultNN is: " << resultNN << endl;
+  weightDistancesfs << samanet->getLayerWeightDistance(0) << " " << samanet->getLayerWeightDistance(1) << " " << samanet->getLayerWeightDistance(2) << " " << samanet->getWeightDistance() << "\n";
+  //cout << "weight distance is: " << samanet->getWeightDistance() << endl;
+
+  double resultNN = samanet->getOutput(0);
   
   return resultNN;
 }

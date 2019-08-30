@@ -127,6 +127,10 @@ double Net::getWeightDistance(){
     return (weightDistance);
 }
 
+double Net::getLayerWeightDistance(int _layerIndex){
+    return sqrt(layers[_layerIndex]->getWeightChange());
+}
+
 double Net::getWeights(int _layerIndex, int _neuronIndex, int _weightIndex){
     double weight=layers[_layerIndex]->getWeights(_neuronIndex, _weightIndex);
     return (weight);

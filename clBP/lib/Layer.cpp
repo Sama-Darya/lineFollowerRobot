@@ -138,7 +138,7 @@ int Layer::saveWeights(int _layerIndex, int _neuronCount){
         n += 1;
         name += l;
         name += n;
-        name += ".txt";
+        name += ".csv";
         neurons[i]->saveWeights(name);
     }
     return (_neuronCount);
@@ -150,7 +150,7 @@ void Layer::snapWeights(int _layerIndex){
     l += _layerIndex + 1;
     string name = "layerWeight";
     name += l;
-    name += ".txt";
+    name += ".csv";
     wfile.open(name);
     for (int i=0; i<nNeurons; i++){
         for (int j=0; j<nInputs; j++){
