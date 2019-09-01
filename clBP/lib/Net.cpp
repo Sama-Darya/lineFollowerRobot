@@ -30,6 +30,8 @@ Net::Net(int _nLayers, int* _nNeurons, int _nInputs)
     for (int i=0; i<nLayers; i++){
         nNeurons += layers[i]->getnNeurons();
     }
+    
+    cout << "number of inputs are: " << nInputs << endl;
 }
 
 Net::~Net(){

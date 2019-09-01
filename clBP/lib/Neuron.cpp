@@ -51,14 +51,14 @@ void Neuron::initNeuron(weightInitMethod _wim, biasInitMethod _bim, Neuron::actM
                 weights[i]=1;
                 break;
             case W_RANDOM:
-                weights[i]=((double)rand()/RAND_MAX);
+                weights[i]=Neuron::doActivation(((double)rand()/RAND_MAX));
                 break;
                 cout << " Neuron: weight is: " << weights[i] << endl;
                 /* rand function generates a random function between
                  * 0 and RAND_MAX, after the devision the weights are
                  * set to a value between 0 and 1 */
         }
-        initialWeights[i]=doActivation(weights[i]);
+        initialWeights[i]=weights[i];
         //saves the initial weights
     }
     switch (_bim){
@@ -116,7 +116,7 @@ double Neuron::doActivation(double _sum){
             output= (1/(1+(exp(-_sum))))- 0.5;
             break;
         case 1:
-            output = tanh(_sum);
+            output = tanh(_sum) * 2;
             break;
         case 2:
             output = _sum;
@@ -164,6 +164,11 @@ void Neuron::updateWeights(){
     for (int i=0; i<nInputs; i++){
         weights[i] += learningRate * (error * inputs[i]); //
         weights[i] = Neuron::doActivation(weights[i]); //normalised weights
+        if (weights[i] > 0 ){
+            weights[i] += 1;
+        }else{
+            weights[i] -= 1;
+        }
         //cout<< "Neuron: internal error is: " << error << endl;
     }
 }

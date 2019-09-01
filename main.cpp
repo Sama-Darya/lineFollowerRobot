@@ -30,10 +30,10 @@ constexpr int ESC_key = 27;
 
 static constexpr int nPredictorCols = 6;
 static constexpr int nPredictorRows = 8;
-static constexpr int nPredictors = nPredictorCols * nPredictorRows;
+static constexpr int nPredictors = nPredictorCols * nPredictorRows * 2;
 
 double errorMult = 10;
-double nnMult = 10;
+double nnMult = 7;
 
 std::ofstream datafs("data.csv");
 
@@ -55,11 +55,11 @@ int16_t onStepCompleted(cv::Mat &statFrame, double deltaSensorData,
   int gain = 1;
 
   cvui::text(statFrame, 10, 320, "Sensor Error Multiplier: ");
-  cvui::trackbar(statFrame, 180, 300, 400, &errorMult, (double)0.0, (double)50.0,
+  cvui::trackbar(statFrame, 180, 300, 400, &errorMult, (double)0.0, (double)20.0,
                  1, "%.2Lf", 0, 0.05);
 
   cvui::text(statFrame, 10, 370, "Net Output Multiplier: ");
-  cvui::trackbar(statFrame, 180, 350, 400, &nnMult, (double)0.0, (double)100.0,
+  cvui::trackbar(statFrame, 180, 350, 400, &nnMult, (double)0.0, (double)30.0,
                  1, "%.2Lf", 0, 0.05);
 
   double result = run_samanet(statFrame, predictorDeltas, deltaSensorData); //does one learning iteration, why divide by 5?
@@ -85,7 +85,7 @@ int16_t onStepCompleted(cv::Mat &statFrame, double deltaSensorData,
   }
   double error2 = (error * errorMult + result * nnMult) * gain;
   int16_t differentialOut = (int16_t)(error2 * 1);
-  cout<< "inside onStepComplete differentialOut: " << differentialOut << endl;
+  //cout<< "inside onStepComplete differentialOut: " << differentialOut << endl;
 
   using namespace std::chrono;
   milliseconds ms =
@@ -176,7 +176,7 @@ double calculateErrorValue(Mat &origframe, Mat &output) {
 }
 
 int main(int, char **) {
-  srand(0); //random number generator
+  srand(3); //random number generator
   cv::namedWindow("robot view");
   cvui::init(STAT_WINDOW);
 
@@ -200,7 +200,7 @@ int main(int, char **) {
   Mat edges;
 
   std::vector<float> predictorDeltaMeans;
-  predictorDeltaMeans.reserve(nPredictorCols * nPredictorRows);
+  predictorDeltaMeans.reserve(nPredictors);
 
   start_time = std::chrono::system_clock::now();
 
@@ -220,8 +220,8 @@ int main(int, char **) {
 
     // Define the rect area that we want to consider.
 
-    int areaWidth = 500; // 500;
-    int areaHeight = 200;
+    int areaWidth = 600; // 500;
+    int areaHeight = 300;
     int offsetFromTop = 100;
     int startX = (frame.cols - areaWidth) / 2;
     auto area = Rect{startX, offsetFromTop, areaWidth, areaHeight};
@@ -244,7 +244,8 @@ int main(int, char **) {
 
         auto grayMeanL = mean(Mat(edges, lPred))[0];
         auto grayMeanR = mean(Mat(edges, rPred))[0];
-        predictorDeltaMeans.push_back((grayMeanL - grayMeanR) / 255);
+        predictorDeltaMeans.push_back((grayMeanR) / 255);
+        predictorDeltaMeans.push_back((grayMeanL) / 255);
         putText(frame, std::to_string((int)grayMeanL),
                 Point{lPred.x + lPred.width / 2 - 13,
                       lPred.y + lPred.height / 2 + 5},
@@ -269,11 +270,13 @@ int main(int, char **) {
     //Ret = LS.Read(&ping, sizeof(ping));
 
     //if (Ret > 0) {
+    
+      //sensorError = 0;
 
       int16_t speedError = onStepCompleted(statFrame, sensorError, predictorDeltaMeans);
 
       Ret = LS.Write(&speedError, sizeof(speedError));
-	  //cout<<"speed error is: "<< speedError <<endl;
+      cout<<"speed error is: "<< speedError <<endl;
     //}
 
     cvui::update();

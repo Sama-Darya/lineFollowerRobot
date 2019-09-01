@@ -21,6 +21,7 @@ public:
     int getnLayers();
     int getnInputs();
     double getWeightDistance();
+    double getLayerWeightDistance(int _layerIndex);
     double getWeights(int _layerIndex, int _neuronIndex, int _weightIndex);
     int getnNeurons();
     void saveWeights();

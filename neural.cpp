@@ -18,8 +18,8 @@ std::vector<std::array<Bandpass, 5>> bandpassFilters;
 static void initialize_filters(int numInputs, float sampleRate) {
   bandpassFilters.resize(numInputs);
   double fs = 1;
-  double fmin = fs / 39;
-  double fmax = fs / 13;
+  double fmin = fs / 30;
+  double fmax = fs / 10;
   double df = (fmax - fmin) / 4.0; // 4 is number of filters minus 1
   for (auto &bank : bandpassFilters) {
     double f = fmin;
@@ -37,7 +37,7 @@ void initialize_samanet(int numInputLayers, float sampleRate) {
 
   int nNeurons[] = {16, 8, 1};
   samanet = std::make_unique<Net>(3, nNeurons, numInputLayers);
-  samanet->initNetwork(Neuron::W_RANDOM, Neuron::B_NONE, Neuron::Act_Tanh);
+  samanet->initNetwork(Neuron::W_RANDOM, Neuron::B_NONE, Neuron::Act_Sigmoid);
   samanet->setLearningRate(0.1);
 
   initialize_filters(numInputLayers, sampleRate);
