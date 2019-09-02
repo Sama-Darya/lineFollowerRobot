@@ -51,7 +51,7 @@ void Neuron::initNeuron(weightInitMethod _wim, biasInitMethod _bim, Neuron::actM
                 weights[i]=1;
                 break;
             case W_RANDOM:
-                weights[i]=Neuron::doActivation(((double)rand()/RAND_MAX));
+                weights[i]=Neuron::doActivation(((double)rand()/RAND_MAX)-0.5);
                 break;
                 cout << " Neuron: weight is: " << weights[i] << endl;
                 /* rand function generates a random function between
@@ -162,13 +162,11 @@ void Neuron::propError(double _nextSum){
 
 void Neuron::updateWeights(){
     for (int i=0; i<nInputs; i++){
-        weights[i] += learningRate * (error * inputs[i]); //
-        weights[i] = Neuron::doActivation(weights[i]); //normalised weights
-        if (weights[i] > 0 ){
-            weights[i] += 1;
-        }else{
-            weights[i] -= 1;
-        }
+        weights[i] += Neuron::doActivation(learningRate * (error * inputs[i])); //
+        //weights[i] = Neuron::doActivation(weights[i]); //normalised weights
+      //  if (weights[i] > 0 ){
+      //      weights[i] += 1;
+      //  }else{weights[i] -= 1;}
         //cout<< "Neuron: internal error is: " << error << endl;
     }
 }

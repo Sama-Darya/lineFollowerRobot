@@ -32,7 +32,7 @@ static constexpr int nPredictorCols = 6;
 static constexpr int nPredictorRows = 8;
 static constexpr int nPredictors = nPredictorCols * nPredictorRows * 2;
 
-double errorMult = 10;
+double errorMult = 15;
 double nnMult = 7;
 
 std::ofstream datafs("data.csv");
@@ -63,7 +63,7 @@ int16_t onStepCompleted(cv::Mat &statFrame, double deltaSensorData,
                  1, "%.2Lf", 0, 0.05);
 
   double result = run_samanet(statFrame, predictorDeltas, deltaSensorData); //does one learning iteration, why divide by 5?
-	cout<< "inside onStepComplete result: " << result << endl;
+	//cout<< "inside onStepComplete result: " << result << endl;
 
 
   cvui::text(statFrame, 220, 10, "Net out:");
@@ -83,7 +83,12 @@ int16_t onStepCompleted(cv::Mat &statFrame, double deltaSensorData,
     cvui::printf(statFrame, 10, 250, "%.2fs", chart_start_t);
     cvui::printf(statFrame, 540, 250, "%.2fs", elapsed_s);
   }
-  double error2 = (error * errorMult + result * nnMult) * gain;
+  double reflex = error * errorMult;
+  double learning = result * nnMult * 100;
+  
+  double error2 = (reflex + learning) * gain;
+  
+  cout << "reflex: " << reflex << " learning: " << learning << endl;
   int16_t differentialOut = (int16_t)(error2 * 1);
   //cout<< "inside onStepComplete differentialOut: " << differentialOut << endl;
 
@@ -101,8 +106,8 @@ int16_t onStepCompleted(cv::Mat &statFrame, double deltaSensorData,
 
 double calculateErrorValue(Mat &origframe, Mat &output) {
   constexpr int numErrorSensors = 5;
-  int areaWidth = 400;
-  int areaHeight = 30;
+  int areaWidth = 580;
+  int areaHeight = 20;
   int offsetFromBottom = 0;
   int blackSensorThreshold = 70;
   int startX = (origframe.cols - areaWidth) / 2;
@@ -121,9 +126,9 @@ double calculateErrorValue(Mat &origframe, Mat &output) {
 //    sensorWeights[j] = 1; //sensorWeights[j + 1] * 0.60;
 //  }
 
-    sensorWeights[0] = 0.1;
-    sensorWeights[1] = 0.5;
-    sensorWeights[2] = 1;
+    sensorWeights[0] = 0;
+    sensorWeights[1] = 0;
+    sensorWeights[2] = 0;
     sensorWeights[3] = 2;
     sensorWeights[4] = 3;
 
@@ -221,7 +226,7 @@ int main(int, char **) {
     // Define the rect area that we want to consider.
 
     int areaWidth = 600; // 500;
-    int areaHeight = 300;
+    int areaHeight = 200;
     int offsetFromTop = 100;
     int startX = (frame.cols - areaWidth) / 2;
     auto area = Rect{startX, offsetFromTop, areaWidth, areaHeight};
