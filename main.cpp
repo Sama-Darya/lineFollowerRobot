@@ -66,11 +66,7 @@ int16_t onStepCompleted(cv::Mat &statFrame, double deltaSensorData,
 	//cout<< "inside onStepComplete result: " << result << endl;
 
 
-  cvui::text(statFrame, 220, 10, "Net out:");
-  cvui::printf(statFrame, 300, 10, "%+.4lf", result);
-
-  cvui::text(statFrame, 220, 30, "Error:");
-  cvui::printf(statFrame, 300, 30, "%+.4lf", deltaSensorData);
+  
 
   {
     std::vector<double> error_list(prevErrors.begin(), prevErrors.end());
@@ -84,11 +80,17 @@ int16_t onStepCompleted(cv::Mat &statFrame, double deltaSensorData,
     cvui::printf(statFrame, 540, 250, "%.2fs", elapsed_s);
   }
   double reflex = error * errorMult;
-  double learning = result * nnMult * 100;
+  double learning = result * nnMult * 50;
+  
+  cvui::text(statFrame, 220, 10, "Net out:");
+  cvui::printf(statFrame, 300, 10, "%+.4lf (%+.4lf)", result, learning);
+
+  cvui::text(statFrame, 220, 30, "Error:");
+  cvui::printf(statFrame, 300, 30, "%+.4lf (%+.4lf)", deltaSensorData, reflex);
   
   double error2 = (reflex + learning) * gain;
   
-  cout << "reflex: " << reflex << " learning: " << learning << endl;
+  //cout << "reflex: " << reflex << " learning: " << learning << endl;
   int16_t differentialOut = (int16_t)(error2 * 1);
   //cout<< "inside onStepComplete differentialOut: " << differentialOut << endl;
 
@@ -107,7 +109,7 @@ int16_t onStepCompleted(cv::Mat &statFrame, double deltaSensorData,
 double calculateErrorValue(Mat &origframe, Mat &output) {
   constexpr int numErrorSensors = 5;
   int areaWidth = 580;
-  int areaHeight = 20;
+  int areaHeight = 30;
   int offsetFromBottom = 0;
   int blackSensorThreshold = 70;
   int startX = (origframe.cols - areaWidth) / 2;
@@ -127,8 +129,8 @@ double calculateErrorValue(Mat &origframe, Mat &output) {
 //  }
 
     sensorWeights[0] = 0;
-    sensorWeights[1] = 0;
-    sensorWeights[2] = 0;
+    sensorWeights[1] = 0.5;
+    sensorWeights[2] = 1;
     sensorWeights[3] = 2;
     sensorWeights[4] = 3;
 
@@ -226,8 +228,8 @@ int main(int, char **) {
     // Define the rect area that we want to consider.
 
     int areaWidth = 600; // 500;
-    int areaHeight = 200;
-    int offsetFromTop = 100;
+    int areaHeight = 300;
+    int offsetFromTop = 50;
     int startX = (frame.cols - areaWidth) / 2;
     auto area = Rect{startX, offsetFromTop, areaWidth, areaHeight};
 
@@ -281,7 +283,7 @@ int main(int, char **) {
       int16_t speedError = onStepCompleted(statFrame, sensorError, predictorDeltaMeans);
 
       Ret = LS.Write(&speedError, sizeof(speedError));
-      cout<<"speed error is: "<< speedError <<endl;
+      //cout<<"speed error is: "<< speedError <<endl;
     //}
 
     cvui::update();
