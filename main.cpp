@@ -33,7 +33,7 @@ static constexpr int nPredictorRows = 8;
 static constexpr int nPredictors = nPredictorCols * nPredictorRows * 2;
 
 double errorMult = 16;
-double nnMult = 0.1;
+double nnMult = 1;
 
 std::ofstream datafs("data.csv");
 
@@ -59,7 +59,7 @@ int16_t onStepCompleted(cv::Mat &statFrame, double deltaSensorData,
                  1, "%.2Lf", 0, 0.05);
 
   cvui::text(statFrame, 10, 370, "Net Output Multiplier: ");
-  cvui::trackbar(statFrame, 180, 350, 400, &nnMult, (double)0.0, (double)1.0,
+  cvui::trackbar(statFrame, 180, 350, 400, &nnMult, (double)0.0, (double)10.0,
                  1, "%.2Lf", 0, 0.05);
 
   double result = run_samanet(statFrame, predictorDeltas, deltaSensorData); //does one learning iteration, why divide by 5?
@@ -90,10 +90,8 @@ int16_t onStepCompleted(cv::Mat &statFrame, double deltaSensorData,
   
   double error2 = (reflex + learning) * gain;
   
-  //cout << "reflex: " << reflex << " learning: " << learning << endl;
   int16_t differentialOut = (int16_t)(error2 * 1);
   //float differentialOut = (float)(error2);
-  //cout<< "inside onStepComplete differentialOut: " << differentialOut << endl;
 
   using namespace std::chrono;
   milliseconds ms =
@@ -125,7 +123,7 @@ double calculateErrorValue(Mat &origframe, Mat &output) {
   std::array<double, numErrorSensors> sensorWeights;
 
     sensorWeights[0] = 0;
-    sensorWeights[1] = 0;
+    sensorWeights[1] = 0.5;
     sensorWeights[2] = 1;
     sensorWeights[3] = 2;
     sensorWeights[4] = 3;
@@ -152,7 +150,7 @@ double calculateErrorValue(Mat &origframe, Mat &output) {
       double diff = grayMeanL - grayMeanR; // if binary use R - L
       
 
-      if ( diff > 20 || diff < -20) {
+      if ( diff > 40 || diff < -40) {
         error += diff * sensorWeights[i]; 
         
       putText(

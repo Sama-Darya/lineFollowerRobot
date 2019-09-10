@@ -91,7 +91,7 @@ double run_samanet(cv::Mat &statFrame, std::vector<float> &predictorDeltas,
   double outMedium = samanet->getOutput(1);
   double outSharp = samanet->getOutput(2);
   
-  double resultNN = 3 * outGentle + 5 * outMedium + 8 * outSharp;
+  double resultNN = 1 * outGentle + 2 * outMedium + 3 * outSharp;
   
   return resultNN;
 }
