@@ -18,7 +18,7 @@ std::vector<std::array<Bandpass, 5>> bandpassFilters;
 static void initialize_filters(int numInputs, float sampleRate) {
   bandpassFilters.resize(numInputs);
   double fs = 1;
-  double fmin = fs / 30;
+  double fmin = fs / 100;
   double fmax = fs / 10;
   double df = (fmax - fmin) / 4.0; // 4 is number of filters minus 1
   for (auto &bank : bandpassFilters) {
@@ -38,7 +38,7 @@ void initialize_samanet(int numInputLayers, float sampleRate) {
   int nNeurons[] = {24, 12, 3};
   samanet = std::make_unique<Net>(3, nNeurons, numInputLayers);
   samanet->initNetwork(Neuron::W_RANDOM, Neuron::B_NONE, Neuron::Act_Sigmoid);
-  samanet->setLearningRate(0.01);
+  samanet->setLearningRate(0.001);
 
   initialize_filters(numInputLayers, sampleRate);
 }
@@ -56,21 +56,21 @@ double run_samanet(cv::Mat &statFrame, std::vector<float> &predictorDeltas,
   std::vector<double> networkInputs;
 
   //predictor << ms.count();
-  predictor << " " << error;
   networkInputs.reserve(predictorDeltas.size() * 5);
   for (int j = 0; j < predictorDeltas.size(); ++j) {
+    predictor << " " << error;
     float sample = predictorDeltas[j];
-      if (j == 0) {
+      //if (j == 0) {
         predictor << " " << sample;
-      }
+      //}
     //cout << "predictor value is: " << sample << endl;
     for (auto &filt : bandpassFilters[j]) {
       auto filtered = filt.filter(sample);
       //cout << "predictor value is: " << filtered << endl;
       networkInputs.push_back(filtered);
-      if (j == 0) {
+      //if (j == 0) {
         predictor << " " << filtered;
-      }
+      //}
     }
   }
   predictor << "\n" ;

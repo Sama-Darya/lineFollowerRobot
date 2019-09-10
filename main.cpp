@@ -32,7 +32,7 @@ static constexpr int nPredictorCols = 6;
 static constexpr int nPredictorRows = 8;
 static constexpr int nPredictors = nPredictorCols * nPredictorRows * 2;
 
-double errorMult = 16;
+double errorMult = 10;
 double nnMult = 1;
 
 std::ofstream datafs("data.csv");
@@ -55,11 +55,11 @@ int16_t onStepCompleted(cv::Mat &statFrame, double deltaSensorData,
   int gain = 1;
 
   cvui::text(statFrame, 10, 320, "Sensor Error Multiplier: ");
-  cvui::trackbar(statFrame, 180, 300, 400, &errorMult, (double)0.0, (double)30.0,
+  cvui::trackbar(statFrame, 180, 300, 400, &errorMult, (double)0.0, (double)20.0,
                  1, "%.2Lf", 0, 0.05);
 
   cvui::text(statFrame, 10, 370, "Net Output Multiplier: ");
-  cvui::trackbar(statFrame, 180, 350, 400, &nnMult, (double)0.0, (double)10.0,
+  cvui::trackbar(statFrame, 180, 350, 400, &nnMult, (double)0.0, (double)5.0,
                  1, "%.2Lf", 0, 0.05);
 
   double result = run_samanet(statFrame, predictorDeltas, deltaSensorData); //does one learning iteration, why divide by 5?
@@ -97,9 +97,9 @@ int16_t onStepCompleted(cv::Mat &statFrame, double deltaSensorData,
   milliseconds ms =
       duration_cast<milliseconds>(system_clock::now().time_since_epoch());
 
-  datafs << ms.count() << ","        // timestamp
-         << deltaSensorData << ","   // error from error units
-         << result << ","            // net output
+  datafs << deltaSensorData << " "   // error from error units
+         << reflex << " "            // reflex
+         << learning << " "            // net output
          << differentialOut << "\n"; // final differential output
 
   return differentialOut;
@@ -150,16 +150,16 @@ double calculateErrorValue(Mat &origframe, Mat &output) {
       double diff = grayMeanL - grayMeanR; // if binary use R - L
       
 
-      if ( diff > 40 || diff < -40) {
+      if ( diff > 50 || diff < -50) {
         error += diff * sensorWeights[i]; 
         
       putText(
         output, std::to_string((int)grayMeanL),
-        Point{lPred.x  + lPred.width / 2 - 5, lPred.y - 30 + lPred.height / 2 + 5},
+        Point{lPred.x  + lPred.width / 2 - 5, lPred.y  + lPred.height / 2 + 5},
         FONT_HERSHEY_TRIPLEX, 0.6, {0, 0, 0});
       putText(
         output, std::to_string((int)grayMeanR),
-        Point{rPred.x  + rPred.width / 2 - 5, rPred.y - 30 + rPred.height / 2 + 5},
+        Point{rPred.x  + rPred.width / 2 - 5, rPred.y  + rPred.height / 2 + 5},
         FONT_HERSHEY_TRIPLEX, 0.6, {0, 0, 0});
       rectangle(output, lPred, Scalar(50, 50, 50));
       rectangle(output, rPred, Scalar(50, 50, 50));
