@@ -59,6 +59,12 @@ void Layer::calcOutputs(){
     }
 }
 
+void Layer::genOutput(){
+    for (int i=0; i<nNeurons; i++){
+        neurons[i]->genOutput();
+    }
+}
+
 void Layer::setError(double _leadError){
     /* this is only for the final layer */
     for (int i=0; i<nNeurons; i++){
@@ -132,14 +138,29 @@ int Layer::saveWeights(int _layerIndex, int _neuronCount){
     char l = '0';
     char n = '0';
     l += _layerIndex + 1;
+    char decimal = '0';
+    bool skip = true;
     for (int i=0; i<nNeurons; i++){
+        if (skip == true){
+            n += 1;
+            }
+            if(skip == false){
+                skip = true;
+            }
         _neuronCount += 1;
-        string name = "neuronWeight";
-        n += 1;
+        string name = "w";
+        name += 'L';
         name += l;
+        name += 'N';
+        name += decimal;
         name += n;
         name += ".csv";
         neurons[i]->saveWeights(name);
+        if (n == '9'){
+            decimal += 1;
+            n= '0';
+            skip = false;
+        }
     }
     return (_neuronCount);
 }
@@ -148,7 +169,7 @@ void Layer::snapWeights(int _layerIndex){
     std::ofstream wfile;
     char l = '0';
     l += _layerIndex + 1;
-    string name = "layerWeight";
+    string name = "wL";
     name += l;
     name += ".csv";
     wfile.open(name);

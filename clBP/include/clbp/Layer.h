@@ -9,6 +9,7 @@ public:
     void setInputs(const double *_inputs); // only for the first layer
     void initLayer(Neuron::weightInitMethod _wim, Neuron::biasInitMethod _bim, Neuron::actMethod _am);
     void calcOutputs();
+    void genOutput();
     double getOutput(int _neuronIndex);
     double getSumOutput(int _neuronIndex);
     void propInputs(int _index, double _value);

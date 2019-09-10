@@ -35,7 +35,7 @@ std::unique_ptr<Net> samanet;
 void initialize_samanet(int numInputLayers, float sampleRate) {
   numInputLayers *= 5; // 5 is the number of filters
 
-  int nNeurons[] = {16, 8, 1};
+  int nNeurons[] = {24, 12, 3};
   samanet = std::make_unique<Net>(3, nNeurons, numInputLayers);
   samanet->initNetwork(Neuron::W_RANDOM, Neuron::B_NONE, Neuron::Act_Sigmoid);
   samanet->setLearningRate(0.01);
@@ -87,7 +87,11 @@ double run_samanet(cv::Mat &statFrame, std::vector<float> &predictorDeltas,
   weightDistancesfs << samanet->getLayerWeightDistance(0) << " " << samanet->getLayerWeightDistance(1) << " " << samanet->getLayerWeightDistance(2) << " " << samanet->getWeightDistance() << "\n";
   //cout << "weight distance is: " << samanet->getWeightDistance() << endl;
 
-  double resultNN = samanet->getOutput(0);
+  double outGentle = samanet->getOutput(0);
+  double outMedium = samanet->getOutput(1);
+  double outSharp = samanet->getOutput(2);
+  
+  double resultNN = 3 * outGentle + 5 * outMedium + 8 * outSharp;
   
   return resultNN;
 }

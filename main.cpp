@@ -32,8 +32,8 @@ static constexpr int nPredictorCols = 6;
 static constexpr int nPredictorRows = 8;
 static constexpr int nPredictors = nPredictorCols * nPredictorRows * 2;
 
-double errorMult = 15;
-double nnMult = 7;
+double errorMult = 16;
+double nnMult = 0.1;
 
 std::ofstream datafs("data.csv");
 
@@ -41,7 +41,7 @@ using clk = std::chrono::system_clock;
 clk::time_point start_time;
 
 int samplingFreq = 30; // 30Hz is the sampling frequency
-int figureLength = 60; //seconds
+int figureLength = 30; //seconds
 
 boost::circular_buffer<double> prevErrors(samplingFreq * figureLength); // this accumulate data for one minute
 
@@ -55,11 +55,11 @@ int16_t onStepCompleted(cv::Mat &statFrame, double deltaSensorData,
   int gain = 1;
 
   cvui::text(statFrame, 10, 320, "Sensor Error Multiplier: ");
-  cvui::trackbar(statFrame, 180, 300, 400, &errorMult, (double)0.0, (double)20.0,
+  cvui::trackbar(statFrame, 180, 300, 400, &errorMult, (double)0.0, (double)30.0,
                  1, "%.2Lf", 0, 0.05);
 
   cvui::text(statFrame, 10, 370, "Net Output Multiplier: ");
-  cvui::trackbar(statFrame, 180, 350, 400, &nnMult, (double)0.0, (double)30.0,
+  cvui::trackbar(statFrame, 180, 350, 400, &nnMult, (double)0.0, (double)1.0,
                  1, "%.2Lf", 0, 0.05);
 
   double result = run_samanet(statFrame, predictorDeltas, deltaSensorData); //does one learning iteration, why divide by 5?
@@ -80,7 +80,7 @@ int16_t onStepCompleted(cv::Mat &statFrame, double deltaSensorData,
     cvui::printf(statFrame, 540, 250, "%.2fs", elapsed_s);
   }
   double reflex = error * errorMult;
-  double learning = result * nnMult * 50;
+  double learning = result * nnMult * 1;
   
   cvui::text(statFrame, 220, 10, "Net out:");
   cvui::printf(statFrame, 300, 10, "%+.4lf (%+.4lf)", result, learning);
@@ -92,6 +92,7 @@ int16_t onStepCompleted(cv::Mat &statFrame, double deltaSensorData,
   
   //cout << "reflex: " << reflex << " learning: " << learning << endl;
   int16_t differentialOut = (int16_t)(error2 * 1);
+  //float differentialOut = (float)(error2);
   //cout<< "inside onStepComplete differentialOut: " << differentialOut << endl;
 
   using namespace std::chrono;
@@ -123,13 +124,8 @@ double calculateErrorValue(Mat &origframe, Mat &output) {
 
   std::array<double, numErrorSensors> sensorWeights;
 
-//  sensorWeights[numErrorSensors - 1] = 1;
-//  for (int j = numErrorSensors - 2; j >= 0; --j) {
-//    sensorWeights[j] = 1; //sensorWeights[j + 1] * 0.60;
-//  }
-
     sensorWeights[0] = 0;
-    sensorWeights[1] = 0.5;
+    sensorWeights[1] = 0;
     sensorWeights[2] = 1;
     sensorWeights[3] = 2;
     sensorWeights[4] = 3;
@@ -137,49 +133,72 @@ double calculateErrorValue(Mat &origframe, Mat &output) {
 
   int numTriggeredPairs = 0;
   double error = 0;
+  
+  std::array<double, numErrorSensors> greyMeansL;
+  std::array<double, numErrorSensors> greyMeansR;
 
-  for (int j = 0; j < numErrorSensors; ++j) {
-      auto lPred = Rect(areaMiddleLine - 30 - (j + 1) * sensorWidth, area.y,
+
+  for (int i = 0; i < numErrorSensors; ++i) {
+      auto lPred = Rect(areaMiddleLine - 30 - (i + 1) * sensorWidth, area.y,
                         sensorWidth, sensorHeight);
-      auto rPred = Rect(areaMiddleLine + 30 + (j) * sensorWidth, area.y,
+      auto rPred = Rect(areaMiddleLine + 30 + (i) * sensorWidth, area.y,
                         sensorWidth, sensorHeight);
 
-      auto grayMeanL = mean(Mat(origframe, lPred))[0]; // (mean(Mat(origframe, lPred))[0]) < blackSensorThreshold;
-      auto grayMeanR = mean(Mat(origframe, rPred))[0]; // (mean(Mat(origframe, rPred))[0]) < blackSensorThreshold;
+      double grayMeanL = mean(Mat(origframe, lPred))[0]; // (mean(Mat(origframe, lPred))[0]) < blackSensorThreshold;
+      double grayMeanR = mean(Mat(origframe, rPred))[0]; // (mean(Mat(origframe, rPred))[0]) < blackSensorThreshold;
+      
+      greyMeansL [i] = grayMeanL;
+      greyMeansR [i] = grayMeanR;
+      double diff = grayMeanL - grayMeanR; // if binary use R - L
+      
 
-      error += (grayMeanL - grayMeanR) * sensorWeights[j]; // if binary use R -L
+      if ( diff > 20 || diff < -20) {
+        error += diff * sensorWeights[i]; 
+        
       putText(
         output, std::to_string((int)grayMeanL),
+        Point{lPred.x  + lPred.width / 2 - 5, lPred.y - 30 + lPred.height / 2 + 5},
+        FONT_HERSHEY_TRIPLEX, 0.6, {0, 0, 0});
+      putText(
+        output, std::to_string((int)grayMeanR),
+        Point{rPred.x  + rPred.width / 2 - 5, rPred.y - 30 + rPred.height / 2 + 5},
+        FONT_HERSHEY_TRIPLEX, 0.6, {0, 0, 0});
+      rectangle(output, lPred, Scalar(50, 50, 50));
+      rectangle(output, rPred, Scalar(50, 50, 50));
+    }
+  }
+  
+     double* maxL = max_element(std::begin(greyMeansL), std::end(greyMeansL));
+     double* maxR = max_element(std::begin(greyMeansR), std::end(greyMeansR));
+     double* minL = min_element(std::begin(greyMeansL) , std::end(greyMeansL));
+     double* minR = min_element(std::begin(greyMeansR) , std::end(greyMeansR));
+     double minU = min(*minL, *minR);
+     
+     //cout << " LLL: " << greyMeansL[4] << " maxL: " << *maxL << " minL: " << *minL << " RRR: " << greyMeansR[4] << " maxR: " << *maxR << " minR: " << *minR << " Uni_min: " << minU << endl;
+     
+     /* for (int i=0; i<numErrorSensors ; i++){
+       greyMeansL[i] = (greyMeansL[i] - minU) * (255 / *maxL);
+       greyMeansR[i] = (greyMeansR[i] - minU) * (255 / *maxR);
+       error += (greyMeansL[i] - greyMeansR[i]) * sensorWeights[i];
+       
+      auto lPred = Rect(areaMiddleLine - 30 - (i + 1) * sensorWidth, area.y,
+                        sensorWidth, sensorHeight);
+      auto rPred = Rect(areaMiddleLine + 30 + (i) * sensorWidth, area.y,
+                        sensorWidth, sensorHeight);
+                        
+                        putText(
+        output, std::to_string((int)greyMeansL[i]),
         Point{lPred.x + lPred.width / 2 - 5, lPred.y + lPred.height / 2 + 5},
         FONT_HERSHEY_TRIPLEX, 0.6, {0, 0, 0});
-    putText(
-        output, std::to_string((int)grayMeanR),
+      putText(
+        output, std::to_string((int)greyMeansR[i]),
         Point{rPred.x + rPred.width / 2 - 5, rPred.y + rPred.height / 2 + 5},
         FONT_HERSHEY_TRIPLEX, 0.6, {0, 0, 0});
-    rectangle(output, lPred, Scalar(50, 50, 50));
-    rectangle(output, rPred, Scalar(50, 50, 50));
-  }
-
+      rectangle(output, lPred, Scalar(50, 50, 50));
+      rectangle(output, rPred, Scalar(50, 50, 50));
+     } */
+     
     return error/(255 * numErrorSensors);
-
-//    auto diff = (grayMeanR - grayMeanL);
-//    numTriggeredPairs += (diff != 0);
-//
-//    error += diff * sensorWeights[j];
-//
-//    putText(
-//        output, std::to_string((int)grayMeanL),
-//        Point{lPred.x + lPred.width / 2 - 5, lPred.y + lPred.height / 2 + 5},
-//        FONT_HERSHEY_TRIPLEX, 0.6, {0, 0, 0});
-//    putText(
-//        output, std::to_string((int)grayMeanR),
-//        Point{rPred.x + rPred.width / 2 - 5, rPred.y + rPred.height / 2 + 5},
-//        FONT_HERSHEY_TRIPLEX, 0.6, {0, 0, 0});
-//    rectangle(output, lPred, Scalar(50, 50, 50));
-//    rectangle(output, rPred, Scalar(50, 50, 50));
-//  }
-//
-//  return numTriggeredPairs ? error / numTriggeredPairs : 0;
 }
 
 int main(int, char **) {
@@ -273,15 +292,12 @@ int main(int, char **) {
          Scalar(50, 50, 255));
     imshow("robot view", frame);
 
-    //int8_t ping = 0;
-    //Ret = LS.Read(&ping, sizeof(ping));
+    //int8_t lightSensor = 0;
+    //lightSensor = LS.Read(&lightSensor, sizeof(lightSensor));
+    //cout << "light sensor is reading: " << lightSensor << endl;
 
     //if (Ret > 0) {
-    
-      //sensorError = 0;
-
       int16_t speedError = onStepCompleted(statFrame, sensorError, predictorDeltaMeans);
-
       Ret = LS.Write(&speedError, sizeof(speedError));
       //cout<<"speed error is: "<< speedError <<endl;
     //}
@@ -292,7 +308,7 @@ int main(int, char **) {
     cv::imshow(STAT_WINDOW, statFrame);
     if (waitKey(20) == ESC_key)
       break;
-  }
+  }\
 
   //save_samanet();
   return 0;

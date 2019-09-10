@@ -21,6 +21,7 @@ public:
     void setInput(int _index, double _value);
     void propInputs(int _index, double _value);
     void calcOutput();
+    void genOutput();
     void updateWeights();
     double doActivation(double _sum);
     double doActivationPrime(double _input);
