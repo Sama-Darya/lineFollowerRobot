@@ -52,8 +52,6 @@ int16_t onStepCompleted(cv::Mat &statFrame, double deltaSensorData,
   double errorGain = 1;
   double error = errorGain * deltaSensorData;
 
-  int gain = 1;
-
   cvui::text(statFrame, 10, 320, "Sensor Error Multiplier: ");
   cvui::trackbar(statFrame, 180, 300, 400, &errorMult, (double)0.0, (double)20.0,
                  1, "%.2Lf", 0, 0.05);
@@ -62,11 +60,8 @@ int16_t onStepCompleted(cv::Mat &statFrame, double deltaSensorData,
   cvui::trackbar(statFrame, 180, 350, 400, &nnMult, (double)0.0, (double)5.0,
                  1, "%.2Lf", 0, 0.05);
 
-  double result = run_samanet(statFrame, predictorDeltas, deltaSensorData); //does one learning iteration, why divide by 5?
-	//cout<< "inside onStepComplete result: " << result << endl;
-
-
-  
+  double result = run_samanet(statFrame, predictorDeltas, error); //does one learning iteration, why divide by 5?
+	//cout<< "inside onStepComplete result: " << result << endl
 
   {
     std::vector<double> error_list(prevErrors.begin(), prevErrors.end());
@@ -88,6 +83,7 @@ int16_t onStepCompleted(cv::Mat &statFrame, double deltaSensorData,
   cvui::text(statFrame, 220, 30, "Error:");
   cvui::printf(statFrame, 300, 30, "%+.4lf (%+.4lf)", deltaSensorData, reflex);
   
+  int gain = 1;
   double error2 = (reflex + learning) * gain;
   
   int16_t differentialOut = (int16_t)(error2 * 1);
