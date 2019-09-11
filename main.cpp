@@ -32,8 +32,8 @@ static constexpr int nPredictorCols = 6;
 static constexpr int nPredictorRows = 8;
 static constexpr int nPredictors = nPredictorCols * nPredictorRows * 2;
 
-double errorMult = 10;
-double nnMult = 1;
+double errorMult = 15;
+double nnMult = 0;
 
 std::ofstream datafs("data.csv");
 
@@ -254,6 +254,22 @@ int main(int, char **) {
     int areaMiddleLine = area.width / 2 + area.x;
 
     for (int k = 0; k < nPredictorRows; ++k) {
+      for (int j = 0; j < nPredictorCols * 2 ; ++j) {
+        auto Pred = Rect(j * predictorWidth, area.y + k * predictorHeight, predictorWidth, predictorHeight);
+
+        auto grayMean = mean(Mat(edges, Pred))[0];
+        predictorDeltaMeans.push_back((grayMean) / 255);
+        putText(frame, std::to_string((int)grayMean),
+                Point{Pred.x + Pred.width / 2 - 13,
+                      Pred.y + Pred.height / 2 + 5},
+                FONT_HERSHEY_TRIPLEX, 0.4, {0, 0, 0});
+      
+        rectangle(frame, Pred, Scalar(50, 50, 50));
+      }
+    }
+    
+    /*
+        for (int k = 0; k < nPredictorRows; ++k) {
       for (int j = 0; j < nPredictorCols; ++j) {
         auto lPred =
             Rect(areaMiddleLine - (j + 1) * predictorWidth,
@@ -277,7 +293,9 @@ int main(int, char **) {
         rectangle(frame, lPred, Scalar(50, 50, 50));
         rectangle(frame, rPred, Scalar(50, 50, 50));
       }
-    }
+    } */
+    
+    
 
     double sensorError = calculateErrorValue(edges, frame);
     //cout<<"bottom line sensor error is: "<< sensorError <<endl;
