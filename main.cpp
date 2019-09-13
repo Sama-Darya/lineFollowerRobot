@@ -32,8 +32,8 @@ static constexpr int nPredictorCols = 6;
 static constexpr int nPredictorRows = 8;
 static constexpr int nPredictors = nPredictorCols * nPredictorRows * 2;
 
-double errorMult = 15;
-double nnMult = 0;
+double errorMult = 7;
+double nnMult = 1;
 
 std::ofstream datafs("data.csv");
 

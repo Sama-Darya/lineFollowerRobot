@@ -51,9 +51,9 @@ void Neuron::initNeuron(weightInitMethod _wim, biasInitMethod _bim, Neuron::actM
                 weights[i]=1;
                 break;
             case W_RANDOM:
-                weights[i]=((double)rand()/RAND_MAX);
+                weights[i]=((double)rand()/(RAND_MAX));
                 break;
-                cout << " Neuron: weight is: " << weights[i] << endl;
+                //cout << " Neuron: weight is: " << weights[i] << endl;
                 /* rand function generates a random function between
                  * 0 and RAND_MAX, after the devision the weights are
                  * set to a value between 0 and 1 */
