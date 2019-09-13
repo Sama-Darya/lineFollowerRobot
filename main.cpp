@@ -255,7 +255,7 @@ int main(int, char **) {
 
     for (int k = 0; k < nPredictorRows; ++k) {
       for (int j = 0; j < nPredictorCols * 2 ; ++j) {
-        auto Pred = Rect(j * predictorWidth, area.y + k * predictorHeight, predictorWidth, predictorHeight);
+        auto Pred = Rect(area.x + j * predictorWidth, area.y + k * predictorHeight, predictorWidth, predictorHeight);
 
         auto grayMean = mean(Mat(edges, Pred))[0];
         predictorDeltaMeans.push_back((grayMean) / 255);
