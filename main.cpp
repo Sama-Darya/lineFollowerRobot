@@ -32,7 +32,7 @@ static constexpr int nPredictorCols = 6;
 static constexpr int nPredictorRows = 8;
 static constexpr int nPredictors = nPredictorCols * nPredictorRows * 2;
 
-double errorMult = 7;
+double errorMult = 12;
 double nnMult = 1;
 
 std::ofstream datafs("data.csv");
@@ -41,7 +41,7 @@ using clk = std::chrono::system_clock;
 clk::time_point start_time;
 
 int samplingFreq = 30; // 30Hz is the sampling frequency
-int figureLength = 30; //seconds
+int figureLength = 300; //seconds
 
 boost::circular_buffer<double> prevErrors(samplingFreq * figureLength); // this accumulate data for one minute
 
@@ -60,7 +60,9 @@ int16_t onStepCompleted(cv::Mat &statFrame, double deltaSensorData,
   cvui::trackbar(statFrame, 180, 350, 400, &nnMult, (double)0.0, (double)5.0,
                  1, "%.2Lf", 0, 0.05);
 
-  double result = run_samanet(statFrame, predictorDeltas, error); //does one learning iteration, why divide by 5?
+  double errorN = error;
+   if (errorN < 0.9){ errorN = 0; }
+  double result = run_samanet(statFrame, predictorDeltas, errorN); //does one learning iteration, why divide by 5?
 	//cout<< "inside onStepComplete result: " << result << endl
 
   {
@@ -119,7 +121,7 @@ double calculateErrorValue(Mat &origframe, Mat &output) {
   std::array<double, numErrorSensors> sensorWeights;
 
     sensorWeights[0] = 0;
-    sensorWeights[1] = 0.5;
+    sensorWeights[1] = 0;
     sensorWeights[2] = 1;
     sensorWeights[3] = 2;
     sensorWeights[4] = 3;
@@ -192,7 +194,7 @@ double calculateErrorValue(Mat &origframe, Mat &output) {
       rectangle(output, rPred, Scalar(50, 50, 50));
      } */
      
-    return error/(255 * numErrorSensors);
+    return error/(255 * 5);
 }
 
 int main(int, char **) {
@@ -309,6 +311,8 @@ int main(int, char **) {
     //cout << "light sensor is reading: " << lightSensor << endl;
 
     //if (Ret > 0) {
+    
+   
       int16_t speedError = onStepCompleted(statFrame, sensorError, predictorDeltaMeans);
       Ret = LS.Write(&speedError, sizeof(speedError));
       //cout<<"speed error is: "<< speedError <<endl;
