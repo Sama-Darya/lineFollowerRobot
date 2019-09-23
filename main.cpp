@@ -61,7 +61,7 @@ int16_t onStepCompleted(cv::Mat &statFrame, double deltaSensorData,
                  1, "%.2Lf", 0, 0.05);
 
   double errorN = error;
-   if (errorN < 0.9){ errorN = 0; }
+   //if (errorN < 0.2 && errorN > -0.2){ errorN = 0; }
   double result = run_samanet(statFrame, predictorDeltas, errorN); //does one learning iteration, why divide by 5?
 	//cout<< "inside onStepComplete result: " << result << endl
 
@@ -121,7 +121,7 @@ double calculateErrorValue(Mat &origframe, Mat &output) {
   std::array<double, numErrorSensors> sensorWeights;
 
     sensorWeights[0] = 0;
-    sensorWeights[1] = 0;
+    sensorWeights[1] = 0.5;
     sensorWeights[2] = 1;
     sensorWeights[3] = 2;
     sensorWeights[4] = 3;
