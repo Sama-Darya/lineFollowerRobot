@@ -11,7 +11,7 @@ float ErrorOut = 0.00;
 float sensorLeft = 0;
 float sensorRight = 0;
 int motorStopL = 1500; // Motor stop uS
-int motorStopR = 1530; // Motor stop uS
+int motorStopR = 1500; // Motor stop uS
 int motorSpeed = 20; // Constant fwd speed
 int errorMulti = 100; // Error multiplier
 int speedLeft = motorStopL + motorSpeed; // Left constant speed
@@ -57,7 +57,7 @@ void loop() {
   //int8_t deltaError = 0;
 	//Serial.write((uint8_t *)&deltaError, sizeof(deltaError));
 
-	while(Serial.available() > 0) {
+	//while(Serial.available() > 0) {
 		//received = Serial.readString();
 			int16_t error = 0;
 			/////// Receive and set motor speed
@@ -69,10 +69,10 @@ void loop() {
 				digitalWrite(LED_BUILTIN, LOW);
 			}*/
 
-			if (prevError != error) {
+			//if (prevError != error) {
 				servoLeft.writeMicroseconds(speedLeft + error);
 				servoRight.writeMicroseconds(speedRight + error);
 				prevError = error;
-			}
-	}
+			//}
+	//}
 }
