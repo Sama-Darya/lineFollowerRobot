@@ -32,8 +32,8 @@ static constexpr int nPredictorCols = 6;
 static constexpr int nPredictorRows = 8;
 static constexpr int nPredictors = nPredictorCols * nPredictorRows * 2;
 
-double errorMult = 12;
-double nnMult = 1;
+double errorMult = 2.5;
+double nnMult = 0;
 
 std::ofstream datafs("data.csv");
 
@@ -53,7 +53,7 @@ int16_t onStepCompleted(cv::Mat &statFrame, double deltaSensorData,
   double error = errorGain * deltaSensorData;
 
   cvui::text(statFrame, 10, 320, "Sensor Error Multiplier: ");
-  cvui::trackbar(statFrame, 180, 300, 400, &errorMult, (double)0.0, (double)20.0,
+  cvui::trackbar(statFrame, 180, 300, 400, &errorMult, (double)0.0, (double)15.0,
                  1, "%.2Lf", 0, 0.05);
 
   cvui::text(statFrame, 10, 370, "Net Output Multiplier: ");
@@ -123,12 +123,14 @@ double calculateErrorValue(Mat &origframe, Mat &output) {
     sensorWeights[0] = 0;
     sensorWeights[1] = 0.5;
     sensorWeights[2] = 1;
-    sensorWeights[3] = 2;
-    sensorWeights[4] = 3;
+    sensorWeights[3] = 1.5;
+    sensorWeights[4] = 2;
 
 
   int numTriggeredPairs = 0;
   double error = 0;
+  int countError = 0;
+
   
   std::array<double, numErrorSensors> greyMeansL;
   std::array<double, numErrorSensors> greyMeansR;
@@ -146,9 +148,9 @@ double calculateErrorValue(Mat &origframe, Mat &output) {
       greyMeansL [i] = grayMeanL;
       greyMeansR [i] = grayMeanR;
       double diff = grayMeanL - grayMeanR; // if binary use R - L
-      
 
       if ( diff > 50 || diff < -50) {
+        countError += 1;
         error += diff * sensorWeights[i]; 
         
       putText(
@@ -194,11 +196,11 @@ double calculateErrorValue(Mat &origframe, Mat &output) {
       rectangle(output, rPred, Scalar(50, 50, 50));
      } */
      
-    return error/(255 * 5);
+    return error/(255);
 }
 
 int main(int, char **) {
-  srand(3); //random number generator
+  srand(0); //random number generator
   cv::namedWindow("robot view");
   cvui::init(STAT_WINDOW);
 
@@ -306,15 +308,24 @@ int main(int, char **) {
          Scalar(50, 50, 255));
     imshow("robot view", frame);
 
-    //int8_t lightSensor = 0;
-    //lightSensor = LS.Read(&lightSensor, sizeof(lightSensor));
-    //cout << "light sensor is reading: " << lightSensor << endl;
+    char lightSensor[9]= {'a'} ;
+    for (int i = 0; i < 9 ; i++){
+    LS.Read(&lightSensor[i], sizeof(lightSensor[i]), 10000);
+    cout << i << " ... sensors: " << (int)lightSensor[i] << endl;
+    }
+    cout << "----------------------------" << endl;
+      
+    //char test = 'c';
+    //LS.Read(&test,sizeof(test),10000);
+    //cout << "test : " << test << endl;
+
+
 
     //if (Ret > 0) {
     
    
       int16_t speedError = onStepCompleted(statFrame, sensorError, predictorDeltaMeans);
-      Ret = LS.Write(&speedError, sizeof(speedError));
+      Ret = LS.Write(&speedError, sizeof(int)*8);
       //cout<<"speed error is: "<< speedError <<endl;
     //}
 

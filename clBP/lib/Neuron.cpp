@@ -98,7 +98,7 @@ void Neuron::calcOutput(){
     }
     sum += bias;
     output = doActivation(sum);
-    assert(std::isfinite(output));
+    //assert(std::isfinite(output));
     //cout << "from Neuron, output is: " << output << endl;
 }
 
@@ -166,17 +166,15 @@ void Neuron::setLearningRate(double _learningRate){
 }
 
 void Neuron::setError(double _leadError){
-    error=0;
-    assert(std::isfinite(doActivationPrime(sum)));
-    
     error = _leadError * doActivationPrime(sum);
+    assert(std::isfinite(error));
+
     /*might take a different format to propError*/
 }
 
 void Neuron::propError(double _nextSum){
-    error=0;
-    assert(std::isfinite(doActivationPrime(sum)));
     error = _nextSum * doActivationPrime(sum);
+    assert(std::isfinite(error));
     //cout<< "_nextSum was: "<< _nextSum << "and dSigmadt is: " << doActivationPrime(sum) <<endl;
 }
 
@@ -184,9 +182,6 @@ void Neuron::updateWeights(){
     for (int i=0; i<nInputs; i++){
         weights[i] += learningRate * (error * inputs[i]); //
         //weights[i] = Neuron::doActivation(weights[i]); //normalised weights
-      //  if (weights[i] > 0 ){
-      //      weights[i] += 1;
-      //  }else{weights[i] -= 1;}
         //cout<< "Neuron: internal error is: " << error << endl;
     }
 }

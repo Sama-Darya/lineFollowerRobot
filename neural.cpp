@@ -35,7 +35,7 @@ std::unique_ptr<Net> samanet;
 void initialize_samanet(int numInputLayers, float sampleRate) {
   numInputLayers *= 5; // 5 is the number of filters
 
-  int nNeurons[] = {27, 9, 1};
+  int nNeurons[] = {18, 9, 1};
   samanet = std::make_unique<Net>(3, nNeurons, numInputLayers);
   samanet->initNetwork(Neuron::W_RANDOM, Neuron::B_NONE, Neuron::Act_Sigmoid);
   samanet->setLearningRate(0.001);
