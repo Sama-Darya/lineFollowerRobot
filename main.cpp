@@ -28,6 +28,9 @@ using namespace cv;
 using namespace std;
 constexpr int ESC_key = 27;
 
+int startIndex = 8;
+int doneShift = 0;
+
 static constexpr int nPredictorCols = 6;
 static constexpr int nPredictorRows = 8;
 static constexpr int nPredictors = nPredictorCols * nPredictorRows * 2;
@@ -41,9 +44,19 @@ using clk = std::chrono::system_clock;
 clk::time_point start_time;
 
 int samplingFreq = 30; // 30Hz is the sampling frequency
-int figureLength = 300; //seconds
+int figureLength = 10; //seconds
 
 boost::circular_buffer<double> prevErrors(samplingFreq * figureLength); // this accumulate data for one minute
+
+boost::circular_buffer<double> sensor0(samplingFreq * figureLength); // this accumulate data for one minute
+boost::circular_buffer<double> sensor1(samplingFreq * figureLength); // this accumulate data for one minute
+boost::circular_buffer<double> sensor2(samplingFreq * figureLength); // this accumulate data for one minute
+boost::circular_buffer<double> sensor3(samplingFreq * figureLength); // this accumulate data for one minute
+boost::circular_buffer<double> sensor4(samplingFreq * figureLength); // this accumulate data for one minute
+boost::circular_buffer<double> sensor5(samplingFreq * figureLength); // this accumulate data for one minute
+boost::circular_buffer<double> sensor6(samplingFreq * figureLength); // this accumulate data for one minute
+boost::circular_buffer<double> sensor7(samplingFreq * figureLength); // this accumulate data for one minute
+
 
 int16_t onStepCompleted(cv::Mat &statFrame, double deltaSensorData,
                         std::vector<float> &predictorDeltas) {
@@ -103,6 +116,7 @@ int16_t onStepCompleted(cv::Mat &statFrame, double deltaSensorData,
   return differentialOut;
 }
 
+/*
 double calculateErrorValue(Mat &origframe, Mat &output) {
   constexpr int numErrorSensors = 5;
   int areaWidth = 580;
@@ -165,40 +179,9 @@ double calculateErrorValue(Mat &origframe, Mat &output) {
       rectangle(output, rPred, Scalar(50, 50, 50));
     }
   }
-  
-     double* maxL = max_element(std::begin(greyMeansL), std::end(greyMeansL));
-     double* maxR = max_element(std::begin(greyMeansR), std::end(greyMeansR));
-     double* minL = min_element(std::begin(greyMeansL) , std::end(greyMeansL));
-     double* minR = min_element(std::begin(greyMeansR) , std::end(greyMeansR));
-     double minU = min(*minL, *minR);
-     
-     //cout << " LLL: " << greyMeansL[4] << " maxL: " << *maxL << " minL: " << *minL << " RRR: " << greyMeansR[4] << " maxR: " << *maxR << " minR: " << *minR << " Uni_min: " << minU << endl;
-     
-     /* for (int i=0; i<numErrorSensors ; i++){
-       greyMeansL[i] = (greyMeansL[i] - minU) * (255 / *maxL);
-       greyMeansR[i] = (greyMeansR[i] - minU) * (255 / *maxR);
-       error += (greyMeansL[i] - greyMeansR[i]) * sensorWeights[i];
-       
-      auto lPred = Rect(areaMiddleLine - 30 - (i + 1) * sensorWidth, area.y,
-                        sensorWidth, sensorHeight);
-      auto rPred = Rect(areaMiddleLine + 30 + (i) * sensorWidth, area.y,
-                        sensorWidth, sensorHeight);
-                        
-                        putText(
-        output, std::to_string((int)greyMeansL[i]),
-        Point{lPred.x + lPred.width / 2 - 5, lPred.y + lPred.height / 2 + 5},
-        FONT_HERSHEY_TRIPLEX, 0.6, {0, 0, 0});
-      putText(
-        output, std::to_string((int)greyMeansR[i]),
-        Point{rPred.x + rPred.width / 2 - 5, rPred.y + rPred.height / 2 + 5},
-        FONT_HERSHEY_TRIPLEX, 0.6, {0, 0, 0});
-      rectangle(output, lPred, Scalar(50, 50, 50));
-      rectangle(output, rPred, Scalar(50, 50, 50));
-     } */
-     
     return error/(255);
-}
-
+} */
+   
 int main(int, char **) {
   srand(0); //random number generator
   cv::namedWindow("robot view");
@@ -272,62 +255,98 @@ int main(int, char **) {
       }
     }
     
-    /*
-        for (int k = 0; k < nPredictorRows; ++k) {
-      for (int j = 0; j < nPredictorCols; ++j) {
-        auto lPred =
-            Rect(areaMiddleLine - (j + 1) * predictorWidth,
-                 area.y + k * predictorHeight, predictorWidth, predictorHeight);
-        auto rPred =
-            Rect(areaMiddleLine + (j)*predictorWidth,
-                 area.y + k * predictorHeight, predictorWidth, predictorHeight);
-
-        auto grayMeanL = mean(Mat(edges, lPred))[0];
-        auto grayMeanR = mean(Mat(edges, rPred))[0];
-        predictorDeltaMeans.push_back((grayMeanR) / 255);
-        predictorDeltaMeans.push_back((grayMeanL) / 255);
-        putText(frame, std::to_string((int)grayMeanL),
-                Point{lPred.x + lPred.width / 2 - 13,
-                      lPred.y + lPred.height / 2 + 5},
-                FONT_HERSHEY_TRIPLEX, 0.4, {0, 0, 0});
-        putText(frame, std::to_string((int)grayMeanR),
-                Point{rPred.x + rPred.width / 2 - 13,
-                      rPred.y + rPred.height / 2 + 5},
-                FONT_HERSHEY_TRIPLEX, 0.4, {0, 0, 0});
-        rectangle(frame, lPred, Scalar(50, 50, 50));
-        rectangle(frame, rPred, Scalar(50, 50, 50));
-      }
-    } */
-    
-    
-
     double sensorError = calculateErrorValue(edges, frame);
-    //cout<<"bottom line sensor error is: "<< sensorError <<endl;
 
     line(frame, {areaMiddleLine, 0}, {areaMiddleLine, frame.rows},
          Scalar(50, 50, 255));
     imshow("robot view", frame);
 
-    char lightSensor[9]= {'a'} ;
-    for (int i = 0; i < 9 ; i++){
-    LS.Read(&lightSensor[i], sizeof(lightSensor[i]), 10000);
-    cout << i << " ... sensors: " << (int)lightSensor[i] << endl;
-    }
-    cout << "----------------------------" << endl;
-      
-    //char test = 'c';
-    //LS.Read(&test,sizeof(test),10000);
-    //cout << "test : " << test << endl;
+    /*
+    char lightSensor[9]= {'a','a','a','a','a','a','a','a','a'} ;
+    double errorSensor[9]= {0,0,0,0,0,0,0,0,0};
+    int check[9]= {0,0,0,0,0,0,0,0,0};
+  
+    LS.Read(&lightSensor, sizeof(lightSensor));
 
+      for (int i = 0; i < 9 ; i++){
+        errorSensor[i] = (int)lightSensor[i];
+        //cout << i << " check: "<< check[i] << " char: " << lightSensor[i] << " double: " << errorSensor[i] << endl;
+        if (errorSensor[i] == 0){
+          startIndex = i + 1;
+          //cout << "start Index: " << startIndex << endl;
+        }
+      }
 
-
-    //if (Ret > 0) {
+    //cout << "----------------------------" << endl;
     
+    double errorSensorshifted[9]= {0,0,0,0,0,0,0,0,0};
+    for (int i = 0; i < 9; i++){
+      int remainIndex = (startIndex + i) % 9;
+      errorSensorshifted[i] = (int)lightSensor[remainIndex];
+      //cout <<  " before: " << remainIndex << " " << errorSensor[remainIndex]  << " after: " << i << " " << errorSensorshifted[i] << endl;
+      //cout << errorSensorshifted[i] << endl;
+    }
+        //cout << "----------------------------" << endl;
+
+
+    
+    //plot the sensor values:
+    
+      double minVal = 30; 
+      double maxVal = 170;
+      sensor0.push_back(errorSensorshifted[0]); //puts the errors in a buffer for plotting
+      sensor0[0] = minVal;
+      sensor0[1] = maxVal;
+      std::vector<double> sensor_list0(sensor0.begin(), sensor0.end());
+      cvui::sparkline(statFrame, sensor_list0, 10, 50, 580, 200, 0xcc0000);
+      
+      sensor1.push_back(errorSensorshifted[1]); //puts the errors in a buffer for plotting
+      sensor1[0] = minVal;
+      sensor1[1] = maxVal;
+      std::vector<double> sensor_list1(sensor1.begin(), sensor1.end());
+      cvui::sparkline(statFrame, sensor_list1, 10, 50, 580, 200, 0xe69138);
+      
+      sensor2.push_back(errorSensorshifted[2]); //puts the errors in a buffer for plotting
+      sensor2[0] = minVal;
+      sensor2[1] = maxVal;
+      std::vector<double> sensor_list2(sensor2.begin(), sensor2.end());
+      cvui::sparkline(statFrame, sensor_list2, 10, 50, 580, 200, 0xf1c232);
+      
+      sensor3.push_back(errorSensorshifted[3]); //puts the errors in a buffer for plotting
+      sensor3[0] = minVal;
+      sensor3[1] = maxVal;
+      std::vector<double> sensor_list3(sensor3.begin(), sensor3.end());
+      cvui::sparkline(statFrame, sensor_list3, 10, 50, 580, 200, 0x6aa84f);
+      
+      sensor4.push_back(errorSensorshifted[4]); //puts the errors in a buffer for plotting
+      sensor4[0] = minVal;
+      sensor4[1] = maxVal;
+      std::vector<double> sensor_list4(sensor4.begin(), sensor4.end());
+      cvui::sparkline(statFrame, sensor_list4, 10, 50, 580, 200, 0x45818e);
+      
+      sensor5.push_back(errorSensorshifted[5]); //puts the errors in a buffer for plotting
+      sensor5[0] = minVal;
+      sensor5[1] = maxVal;
+      std::vector<double> sensor_list5(sensor5.begin(), sensor5.end());
+      cvui::sparkline(statFrame, sensor_list5, 10, 50, 580, 200, 0x674ea7);
+      
+      sensor6.push_back(errorSensorshifted[6]); //puts the errors in a buffer for plotting
+      sensor6[0] = minVal;
+      sensor6[1] = maxVal;
+      std::vector<double> sensor_list6(sensor6.begin(), sensor6.end());
+      cvui::sparkline(statFrame, sensor_list6, 10, 50, 580, 200, 0xa64d79);
+      
+      sensor7.push_back(errorSensorshifted[7]); //puts the errors in a buffer for plotting
+      sensor7[0] = minVal;
+      sensor7[1] = maxVal;
+      std::vector<double> sensor_list7(sensor7.begin(), sensor7.end());
+      cvui::sparkline(statFrame, sensor_list7, 10, 50, 580, 200, 0x3c78d8);
+
+      */
    
-      int16_t speedError = onStepCompleted(statFrame, sensorError, predictorDeltaMeans);
-      Ret = LS.Write(&speedError, sizeof(int)*8);
-      //cout<<"speed error is: "<< speedError <<endl;
-    //}
+      int16_t speedError = 10 * onStepCompleted(statFrame, sensorError, predictorDeltaMeans);
+      Ret = LS.Write(&speedError, sizeof(speedError));
+      //cout<<"speed error is: "<< speedError <<endl; 
 
     cvui::update();
 
