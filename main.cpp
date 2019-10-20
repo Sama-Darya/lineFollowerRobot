@@ -44,7 +44,7 @@ using clk = std::chrono::system_clock;
 clk::time_point start_time;
 
 int samplingFreq = 30; // 30Hz is the sampling frequency
-int figureLength = 10; //seconds
+int figureLength = 120; //seconds
 
 boost::circular_buffer<double> prevErrors(samplingFreq * figureLength); // this accumulate data for one minute
 
@@ -80,7 +80,7 @@ int16_t onStepCompleted(cv::Mat &statFrame, double deltaSensorData,
 
   {
     std::vector<double> error_list(prevErrors.begin(), prevErrors.end());
-    cvui::sparkline(statFrame, error_list, 10, 50, 580, 200);
+    cvui::sparkline(statFrame, error_list, 10, 50, 580, 200, 0x000000);
     float elapsed_s = std::chrono::duration_cast<std::chrono::milliseconds>(
                           clk::now() - start_time)
                           .count() /
@@ -102,7 +102,6 @@ int16_t onStepCompleted(cv::Mat &statFrame, double deltaSensorData,
   double error2 = (reflex + learning) * gain;
   
   int16_t differentialOut = (int16_t)(error2 * 1);
-  //float differentialOut = (float)(error2);
 
   using namespace std::chrono;
   milliseconds ms =
@@ -181,7 +180,97 @@ double calculateErrorValue(Mat &origframe, Mat &output) {
   }
     return error/(255);
 } */
-   
+
+double calcError(std::vector<char> &lightSensors){
+  
+      const int numSensors = 8;
+      double errorSensor[numSensors+1]= {0,0,0,0,0,0,0,0,0};
+      for (int i = 0; i < numSensors+1 ; i++){
+        errorSensor[i] = (double)lightSensors[i];
+        //cout << i << " -" << errorSensor[i] << endl;
+        if (errorSensor[i] == 0){
+          startIndex = i + 1;
+          //cout << "start Index: " << startIndex << endl;
+        }
+      }
+    
+    double errorSensorshifted[numSensors+1]= {0,0,0,0,0,0,0,0,0};
+    double calibBlack[numSensors+1] = {67,99,83,114,117,90,79,60,1}; //x1
+    double calibWhite[numSensors+1] = {139,150,146,155,155,140,135,124,2}; //x2
+    double mapBlack = 100; //y1
+    double mapWhite = 200; //y2
+    double threshold = (mapBlack + mapWhite)/2;
+    for (int i = 0; i < numSensors+1; i++){
+      int remainIndex = (startIndex + i) % (numSensors+1);
+      errorSensorshifted[i] = (double)lightSensors[remainIndex];
+      errorSensorshifted[i] = ( (mapWhite - mapBlack)/(calibWhite[i] - calibBlack[i]) ) * (errorSensorshifted[i] - calibBlack[i]) + mapBlack;
+      if (errorSensorshifted[i] > threshold){ errorSensorshifted[i] = 1;} else{errorSensorshifted[i] = 0;}
+      //cout << i<< " :" << (double)errorSensorshifted[i] << endl;
+    }
+    double errorWeights[numSensors/2] = {4,3.5,3,3};
+    double error = 0;
+    for (int i =0 ; i < numSensors/2; i++){
+       error += -(errorWeights[i]) * (errorSensorshifted[numSensors -1 -i] - errorSensorshifted[i]);
+    }
+
+    //plot the sensor values:
+    /*
+    double minVal = -1; 
+    double maxVal = 2;
+    
+    sensor0.push_back(errorSensorshifted[0]); //puts the errors in a buffer for plotting
+    sensor0[0] = minVal;
+    sensor0[1] = maxVal;
+    std::vector<double> sensor_list0(sensor0.begin(), sensor0.end());
+    cvui::sparkline(statFrame, sensor_list0, 10, 50, 580, 200, 0xcc0000);
+    
+    sensor1.push_back(errorSensorshifted[1]); //puts the errors in a buffer for plotting
+    sensor1[0] = minVal;
+    sensor1[1] = maxVal;
+    std::vector<double> sensor_list1(sensor1.begin(), sensor1.end());
+    cvui::sparkline(statFrame, sensor_list1, 10, 50, 580, 200, 0xe69138);
+    
+    sensor2.push_back(errorSensorshifted[2]); //puts the errors in a buffer for plotting
+    sensor2[0] = minVal;
+    sensor2[1] = maxVal;
+    std::vector<double> sensor_list2(sensor2.begin(), sensor2.end());
+    cvui::sparkline(statFrame, sensor_list2, 10, 50, 580, 200, 0xf1c232);
+    
+    sensor3.push_back(errorSensorshifted[3]); //puts the errors in a buffer for plotting
+    sensor3[0] = minVal;
+    sensor3[1] = maxVal;
+    std::vector<double> sensor_list3(sensor3.begin(), sensor3.end());
+    cvui::sparkline(statFrame, sensor_list3, 10, 50, 580, 200, 0x6aa84f);
+    
+    sensor4.push_back(errorSensorshifted[4]); //puts the errors in a buffer for plotting
+    sensor4[0] = minVal;
+    sensor4[1] = maxVal;
+    std::vector<double> sensor_list4(sensor4.begin(), sensor4.end());
+    cvui::sparkline(statFrame, sensor_list4, 10, 50, 580, 200, 0x3c78d8);
+    
+    sensor5.push_back(errorSensorshifted[5]); //puts the errors in a buffer for plotting
+    sensor5[0] = minVal;
+    sensor5[1] = maxVal;
+    std::vector<double> sensor_list5(sensor5.begin(), sensor5.end());
+    cvui::sparkline(statFrame, sensor_list5, 10, 50, 580, 200, 0x674ea7);
+    
+    sensor6.push_back(errorSensorshifted[6]); //puts the errors in a buffer for plotting
+    sensor6[0] = minVal;
+    sensor6[1] = maxVal;
+    std::vector<double> sensor_list6(sensor6.begin(), sensor6.end());
+    cvui::sparkline(statFrame, sensor_list6, 10, 50, 580, 200, 0xa64d79);
+    
+    sensor7.push_back(errorSensorshifted[7]); //puts the errors in a buffer for plotting
+    sensor7[0] = minVal;
+    sensor7[1] = maxVal;
+    std::vector<double> sensor_list7(sensor7.begin(), sensor7.end());
+    cvui::sparkline(statFrame, sensor_list7, 10, 50, 580, 200, 0xffffff);
+    */
+    return error;
+}
+
+
+
 int main(int, char **) {
   srand(0); //random number generator
   cv::namedWindow("robot view");
@@ -210,11 +299,18 @@ int main(int, char **) {
   predictorDeltaMeans.reserve(nPredictors);
 
   start_time = std::chrono::system_clock::now();
+  
+  
+  std::vector<char> lightSensor;
+  lightSensor.reserve(9);
 
   for (;;) {
     statFrame = cv::Scalar(49, 52, 49);
     predictorDeltaMeans.clear();
+    
+    lightSensor.clear();
 
+ 
     Mat origframe, frame;
     cap >> origframe; // get a new frame from camera
 
@@ -222,8 +318,6 @@ int main(int, char **) {
     flip(origframe,frame,-1); // 0 horizontal, 1 vertical, -1 both
 
     cvtColor(frame, edges, COLOR_BGR2GRAY);
-
-
 
     // Define the rect area that we want to consider.
 
@@ -255,106 +349,34 @@ int main(int, char **) {
       }
     }
     
-    double sensorError = calculateErrorValue(edges, frame);
+    //double sensorError = calculateErrorValue(edges, frame);
+
 
     line(frame, {areaMiddleLine, 0}, {areaMiddleLine, frame.rows},
          Scalar(50, 50, 255));
-    imshow("robot view", frame);
+    imshow("robot view", frame); 
 
-    /*
-    char lightSensor[9]= {'a','a','a','a','a','a','a','a','a'} ;
-    double errorSensor[9]= {0,0,0,0,0,0,0,0,0};
-    int check[9]= {0,0,0,0,0,0,0,0,0};
-  
-    LS.Read(&lightSensor, sizeof(lightSensor));
-
-      for (int i = 0; i < 9 ; i++){
-        errorSensor[i] = (int)lightSensor[i];
-        //cout << i << " check: "<< check[i] << " char: " << lightSensor[i] << " double: " << errorSensor[i] << endl;
-        if (errorSensor[i] == 0){
-          startIndex = i + 1;
-          //cout << "start Index: " << startIndex << endl;
-        }
-      }
-
-    //cout << "----------------------------" << endl;
-    
-    double errorSensorshifted[9]= {0,0,0,0,0,0,0,0,0};
-    for (int i = 0; i < 9; i++){
-      int remainIndex = (startIndex + i) % 9;
-      errorSensorshifted[i] = (int)lightSensor[remainIndex];
-      //cout <<  " before: " << remainIndex << " " << errorSensor[remainIndex]  << " after: " << i << " " << errorSensorshifted[i] << endl;
-      //cout << errorSensorshifted[i] << endl;
+    char lightSensors[9]= {'a','a','a','a','a','a','a','a','a'};    
+    Ret = LS.Read(&lightSensors, sizeof(lightSensors));
+    for (int i = 0 ; i<9; i++){
+      lightSensor.push_back(lightSensors[i]);
     }
-        //cout << "----------------------------" << endl;
-
-
     
-    //plot the sensor values:
+    double sensorError = calcError(lightSensor);
     
-      double minVal = 30; 
-      double maxVal = 170;
-      sensor0.push_back(errorSensorshifted[0]); //puts the errors in a buffer for plotting
-      sensor0[0] = minVal;
-      sensor0[1] = maxVal;
-      std::vector<double> sensor_list0(sensor0.begin(), sensor0.end());
-      cvui::sparkline(statFrame, sensor_list0, 10, 50, 580, 200, 0xcc0000);
-      
-      sensor1.push_back(errorSensorshifted[1]); //puts the errors in a buffer for plotting
-      sensor1[0] = minVal;
-      sensor1[1] = maxVal;
-      std::vector<double> sensor_list1(sensor1.begin(), sensor1.end());
-      cvui::sparkline(statFrame, sensor_list1, 10, 50, 580, 200, 0xe69138);
-      
-      sensor2.push_back(errorSensorshifted[2]); //puts the errors in a buffer for plotting
-      sensor2[0] = minVal;
-      sensor2[1] = maxVal;
-      std::vector<double> sensor_list2(sensor2.begin(), sensor2.end());
-      cvui::sparkline(statFrame, sensor_list2, 10, 50, 580, 200, 0xf1c232);
-      
-      sensor3.push_back(errorSensorshifted[3]); //puts the errors in a buffer for plotting
-      sensor3[0] = minVal;
-      sensor3[1] = maxVal;
-      std::vector<double> sensor_list3(sensor3.begin(), sensor3.end());
-      cvui::sparkline(statFrame, sensor_list3, 10, 50, 580, 200, 0x6aa84f);
-      
-      sensor4.push_back(errorSensorshifted[4]); //puts the errors in a buffer for plotting
-      sensor4[0] = minVal;
-      sensor4[1] = maxVal;
-      std::vector<double> sensor_list4(sensor4.begin(), sensor4.end());
-      cvui::sparkline(statFrame, sensor_list4, 10, 50, 580, 200, 0x45818e);
-      
-      sensor5.push_back(errorSensorshifted[5]); //puts the errors in a buffer for plotting
-      sensor5[0] = minVal;
-      sensor5[1] = maxVal;
-      std::vector<double> sensor_list5(sensor5.begin(), sensor5.end());
-      cvui::sparkline(statFrame, sensor_list5, 10, 50, 580, 200, 0x674ea7);
-      
-      sensor6.push_back(errorSensorshifted[6]); //puts the errors in a buffer for plotting
-      sensor6[0] = minVal;
-      sensor6[1] = maxVal;
-      std::vector<double> sensor_list6(sensor6.begin(), sensor6.end());
-      cvui::sparkline(statFrame, sensor_list6, 10, 50, 580, 200, 0xa64d79);
-      
-      sensor7.push_back(errorSensorshifted[7]); //puts the errors in a buffer for plotting
-      sensor7[0] = minVal;
-      sensor7[1] = maxVal;
-      std::vector<double> sensor_list7(sensor7.begin(), sensor7.end());
-      cvui::sparkline(statFrame, sensor_list7, 10, 50, 580, 200, 0x3c78d8);
-
-      */
-   
-      int16_t speedError = 10 * onStepCompleted(statFrame, sensorError, predictorDeltaMeans);
-      Ret = LS.Write(&speedError, sizeof(speedError));
-      //cout<<"speed error is: "<< speedError <<endl; 
-
-    cvui::update();
+    if (Ret > 0){
+      int16_t speedError = onStepCompleted(statFrame, sensorError, predictorDeltaMeans);
+      char speedErrorChar = (char)speedError;
+      Ret = LS.Write(&speedErrorChar, sizeof(speedErrorChar));
+      //cout<<"speed error is: "<< speedError <<endl;
+    }
 
     // Show everything on the screen
+    cvui::update();
     cv::imshow(STAT_WINDOW, statFrame);
     if (waitKey(20) == ESC_key)
       break;
-  }\
+  }
 
   //save_samanet();
   return 0;
