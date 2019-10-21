@@ -58,7 +58,7 @@ boost::circular_buffer<double> sensor6(samplingFreq * figureLength); // this acc
 boost::circular_buffer<double> sensor7(samplingFreq * figureLength); // this accumulate data for one minute
 
 
-int16_t onStepCompleted(cv::Mat &statFrame, double deltaSensorData,
+int onStepCompleted(cv::Mat &statFrame, double deltaSensorData,
                         std::vector<float> &predictorDeltas) {
   prevErrors.push_back(deltaSensorData); //puts the errors in a buffer for plotting
 
@@ -112,7 +112,7 @@ int16_t onStepCompleted(cv::Mat &statFrame, double deltaSensorData,
          << learning << " "            // net output
          << differentialOut << "\n"; // final differential output
 
-  return differentialOut;
+  return (int)error2;
 }
 
 /*
@@ -303,33 +303,32 @@ int main(int, char **) {
   
   std::vector<char> lightSensor;
   lightSensor.reserve(9);
+  
+        
+    // Define the rect area that we want to consider.
+    int areaWidth = 600; // 500;
+    int areaHeight = 300;
+    int offsetFromTop = 50;
+    // VERTICAL RESOLUTION OF CAMERA SHOULD ADJUST
+    int startX = (640 - areaWidth) / 2;
+    auto area = Rect{startX, offsetFromTop, areaWidth, areaHeight};
+    int predictorWidth = area.width / 2 / nPredictorCols;
+    int predictorHeight = area.height / nPredictorRows;
 
   for (;;) {
     statFrame = cv::Scalar(49, 52, 49);
     predictorDeltaMeans.clear();
     
     lightSensor.clear();
-
  
     Mat origframe, frame;
     cap >> origframe; // get a new frame from camera
 
-      //flip the image
+    //flip the image
     flip(origframe,frame,-1); // 0 horizontal, 1 vertical, -1 both
 
     cvtColor(frame, edges, COLOR_BGR2GRAY);
-
-    // Define the rect area that we want to consider.
-
-    int areaWidth = 600; // 500;
-    int areaHeight = 300;
-    int offsetFromTop = 50;
-    int startX = (frame.cols - areaWidth) / 2;
-    auto area = Rect{startX, offsetFromTop, areaWidth, areaHeight};
-
-    int predictorWidth = area.width / 2 / nPredictorCols;
-    int predictorHeight = area.height / nPredictorRows;
-
+    
     rectangle(edges, area, Scalar(122, 144, 255));
 
     int areaMiddleLine = area.width / 2 + area.x;
@@ -355,21 +354,23 @@ int main(int, char **) {
     line(frame, {areaMiddleLine, 0}, {areaMiddleLine, frame.rows},
          Scalar(50, 50, 255));
     imshow("robot view", frame); 
+    
+    
 
     char lightSensors[9]= {'a','a','a','a','a','a','a','a','a'};    
     Ret = LS.Read(&lightSensors, sizeof(lightSensors));
     for (int i = 0 ; i<9; i++){
       lightSensor.push_back(lightSensors[i]);
-    }
+    } 
     
     double sensorError = calcError(lightSensor);
     
     if (Ret > 0){
-      int16_t speedError = onStepCompleted(statFrame, sensorError, predictorDeltaMeans);
+      int speedError = 100 + onStepCompleted(statFrame, sensorError, predictorDeltaMeans);
       char speedErrorChar = (char)speedError;
       Ret = LS.Write(&speedErrorChar, sizeof(speedErrorChar));
       //cout<<"speed error is: "<< speedError <<endl;
-    }
+    } 
 
     // Show everything on the screen
     cvui::update();
