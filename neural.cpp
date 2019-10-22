@@ -46,7 +46,7 @@ void initialize_samanet(int numInputLayers, float sampleRate) {
 std::ofstream weightDistancesfs("weight_distances.csv");
 std::ofstream predictor("predictor.csv");
 
-double run_samanet(cv::Mat &statFrame, std::vector<float> &predictorDeltas,
+double run_samanet(cv::Mat &statFrame, std::vector<double> &predictorDeltas,
                    double error) {
 
   using namespace std::chrono;
