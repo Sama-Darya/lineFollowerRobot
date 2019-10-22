@@ -114,8 +114,9 @@ double Extern::calcError(cv::Mat &statFrame, vector<char> &sensorCHAR){
       sensorVAL[i] = sensorINT[remainIndex];
       sensorVAL[i] = ( (mapWhite - mapBlack)/(calibWhite[i] - calibBlack[i]) ) * (sensorVAL[i] - calibBlack[i]) + mapBlack;
       if (sensorVAL[i] > threshold){ sensorVAL[i] = 1;} else{sensorVAL[i] = 0;}
-      //cout << i<< " :" << (double)errorSensorshifted[i] << endl;
+      cout << i<< " :" << (double)sensorVAL[i] << endl;
     }
+    cout << " ------------------------------- "<< endl;
     double errorWeights[numSensors/2] = {5,4,3,2};
     double error = 0;
     for (int i =0 ; i < numSensors/2; i++){
