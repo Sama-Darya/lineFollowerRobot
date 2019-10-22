@@ -13,6 +13,15 @@
 #include "external.h"
 #include "cvui.h"
 
+#include "bandpass.h"
+
+#include <initializer_list>
+#include <memory>
+#include <opencv2/opencv.hpp>
+#include <string>
+#include <vector>
+
+
 using namespace std;
 using namespace cv;
 
@@ -22,7 +31,7 @@ Extern::Extern(){
 }
 
 	int samplingFreq = 30; // 30Hz is the sampling frequency
-	int figureLength = 120; //seconds
+	int figureLength = 5; //seconds
 	
 	boost::circular_buffer<double> prevErrors(samplingFreq * figureLength);
 	
@@ -91,6 +100,19 @@ int Extern::onStepCompleted(cv::Mat &statFrame, double deltaSensorData,
 }
 
 
+Bandpass sensorFilters[8];
+
+void Extern::initSensorFilters(float sampleRate) {
+
+  double fs = 1;
+  double fdelay = fs / 10;
+  double dampingcoeff = 0.51;
+  for (int i =0; i < 8; i++){
+      sensorFilters[i].setParameters(fdelay, dampingcoeff);
+  }
+}
+
+
 double Extern::calcError(cv::Mat &statFrame, vector<char> &sensorCHAR){
     
 	const int numSensors = 8;
@@ -104,28 +126,34 @@ double Extern::calcError(cv::Mat &statFrame, vector<char> &sensorCHAR){
 	}
     
     int sensorVAL[numSensors+1]= {0,0,0,0,0,0,0,0,0};
+    int sensorVALcalibrated[numSensors+1]= {0,0,0,0,0,0,0,0,0};
     int calibBlack[numSensors+1] = {67,99,83,114,117,90,79,60,1}; //x1
     int calibWhite[numSensors+1] = {139,150,146,155,155,140,135,124,2}; //x2
     int mapBlack = 100; //y1
     int mapWhite = 200; //y2
-    int threshold = (mapBlack + mapWhite)/2;
     for (int i = 0; i < numSensors+1; i++){
       int remainIndex = (startIndex + i) % (numSensors+1);
       sensorVAL[i] = sensorINT[remainIndex];
-      sensorVAL[i] = ( (mapWhite - mapBlack)/(calibWhite[i] - calibBlack[i]) ) * (sensorVAL[i] - calibBlack[i]) + mapBlack;
-      if (sensorVAL[i] > threshold){ sensorVAL[i] = 1;} else{sensorVAL[i] = 0;}
-      cout << i<< " :" << (double)sensorVAL[i] << endl;
+      sensorVALcalibrated[i] = (( (mapWhite - mapBlack)/(calibWhite[i] - calibBlack[i]) ) * (sensorVAL[i] - calibBlack[i]) + mapBlack);
+      cout << i<< " :" << sensorVAL[i] << endl;
     }
     cout << " ------------------------------- "<< endl;
-    double errorWeights[numSensors/2] = {5,4,3,2};
+    
+    int sensorVALfilt[numSensors]= {0,0,0,0,0,0,0,0};
+
+    for (int i = 0; i < numSensors; ++i) {
+      sensorVALfilt[i] = sensorFilters[i].filter(sensorVAL[i]);
+    }
+    
+    double errorWeights[numSensors/2] = {8,6,4,2};
     double error = 0;
     for (int i =0 ; i < numSensors/2; i++){
-       error += -(errorWeights[i]) * (sensorVAL[numSensors -1 -i] - sensorVAL[i]);
+       error += -(errorWeights[i]) * (sensorVALfilt[numSensors -1 -i] - sensorVALfilt[i]);
     }
 
     //plot the sensor values:
-    double minVal = -1; 
-    double maxVal = 2;
+    double minVal = 100; 
+    double maxVal = 120;
     
     sensor0.push_back(sensorVAL[0]); //puts the errors in a buffer for plotting
     sensor0[0] = minVal;

@@ -62,6 +62,8 @@ int main(int, char **) {
     
     std::vector<char> sensorCHAR;
     sensorCHAR.reserve(9);
+    
+  external->initSensorFilters();
 
 
   for (;;) {

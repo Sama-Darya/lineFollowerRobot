@@ -20,6 +20,8 @@ class Extern {
 	public:
 	Extern();
 	
+	
+	static void initSensorFilters(float sampleRate = 30.f);
 	int onStepCompleted(Mat &statFrame, double deltaSensorData, vector<double> &predictorDeltas);
 	double calcError(Mat &statFrame, vector<char> &sensorCHAR);
 	void calcPredictors(Mat &frame, vector<double> &predictorDeltaMeans);
