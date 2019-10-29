@@ -56,15 +56,10 @@ int main(int, char **) {
     return -1;
   }
 
-    
     std::vector<double> predictorDeltaMeans;
     predictorDeltaMeans.reserve(nPredictors);
-    
     std::vector<char> sensorCHAR;
     sensorCHAR.reserve(9);
-    
-  external->initSensorFilters();
-
 
   for (;;) {
     //getting the predictor signals from the camera

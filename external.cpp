@@ -24,6 +24,8 @@
 #include <vector>
 
 
+
+
 using namespace std;
 using namespace cv;
 
@@ -60,7 +62,7 @@ int Extern::onStepCompleted(cv::Mat &statFrame, double deltaSensorData,
   double error = errorGain * deltaSensorData;
 
   cvui::text(statFrame, 10, 320, "Sensor Error Multiplier: ");
-  cvui::trackbar(statFrame, 180, 300, 400, &errorMult, (double)0.0, (double)5.0,
+  cvui::trackbar(statFrame, 180, 300, 400, &errorMult, (double)0.0, (double)5,
                  1, "%.2Lf", 0, 0.05);
 
   cvui::text(statFrame, 10, 370, "Net Output Multiplier: ");
@@ -119,14 +121,6 @@ LowPassFilter lpf5(cutOff, sampFreq);
 LowPassFilter lpf6(cutOff, sampFreq);
 LowPassFilter lpf7(cutOff, sampFreq);
 
-void Extern::initSensorFilters(float sampleRate) {
-  double fs = 1;
-  double fdelay = fs / 1000;
-  double dampingcoeff = 0.51;
-  for (int i =0; i < 8; i++){
-      sensorFilters[i].setParameters(fdelay, dampingcoeff);
-  }
-}
 
 double Extern::calcError(cv::Mat &statFrame, vector<char> &sensorCHAR){
 	const int numSensors = 8;
@@ -138,25 +132,28 @@ double Extern::calcError(cv::Mat &statFrame, vector<char> &sensorCHAR){
 			startIndex = i + 1;
 		}
 	}
-    
-    int sensorVAL[numSensors+1]= {0,0,0,0,0,0,0,0,0};
-    int calibBlack[numSensors+1] = {98 ,91 ,73 ,33 ,37 ,35 ,75 ,85 ,1}; //x1
-    int calibWhite[numSensors+1] = {133,146,149,163,167,137,150,123,2}; //x2
+    float sensorVAL[numSensors+1]= {0,0,0,0,0,0,0,0,0};
     float mapBlack = 100; //y1
     float mapWhite = 200; //y2
-    float m = 0;
+    float m [8+1] = {0,0,0,0,0,0,0,0,0};
+    char colorName[8] = {'R', 'O', 'Y', 'G', 'B', 'V', 'P', 'W'};
     
-    for (int i = 0; i < numSensors+1; i++){
+    for (int i = 0; i < numSensors; i++){
       int remainIndex = (startIndex + i) % (numSensors+1);
-      m = (mapWhite - mapBlack)/(calibWhite[i] - calibBlack[i]);
-      sensorVAL[i] = m * (sensorINT[remainIndex] - calibBlack[i]) + mapBlack;
-      cout << i << " :" << sensorINT[remainIndex] << " + " <<  sensorVAL[i]  - sensorINT[remainIndex] << " = " << sensorVAL[i] << endl;
+      sensorVAL[i] = sensorINT[remainIndex];
+      threshWhite[i] = calibWhite[i] - 1 * diffCalib[i] / 5 ;
+      threshBlack[i] = calibBlack[i] + 1 * diffCalib[i] / 5 ;
+      if (sensorVAL[i] > threshWhite[i] ){calibWhite[i] = sensorVAL[i];}
+      if (sensorVAL[i] < threshBlack[i] ){calibBlack[i] = sensorVAL[i];}
+      diffCalib[i] = calibWhite[i] - calibBlack[i];
+      m[i] = (mapWhite - mapBlack)/(calibWhite[i] - calibBlack[i]);
+      sensorVAL[i] = m[i] * (sensorINT[remainIndex] - calibBlack[i]) + mapBlack;
+      cout << colorName[i] << " Bcal: " << (int)calibBlack[i] << " " << (int)threshBlack[i] 
+            << " raw: " << (int)sensorINT[remainIndex] 
+            << " Wcal: " << (int)threshWhite[i] << " " << (int)calibWhite[i] 
+            << " cal: " << (int)sensorVAL[i] << endl;
     }
     cout << " ------------------------------- "<< endl;
-    
-    //for (int i = 0; i < numSensors; ++i) {
-      //sensorVAL[i] = sensorFilters[i].filter(sensorVAL[i]);
-    //}
     
     sensorVAL[0] = lpf0.update(sensorVAL[0]);
     sensorVAL[1] = lpf1.update(sensorVAL[1]);
@@ -167,9 +164,9 @@ double Extern::calcError(cv::Mat &statFrame, vector<char> &sensorCHAR){
     sensorVAL[6] = lpf6.update(sensorVAL[6]);
     sensorVAL[7] = lpf7.update(sensorVAL[7]);
 
-    double errorWeights[numSensors/2] = {1,1,1,1};
+    double errorWeights[numSensors/2] = {2.5,2,1.5,1};
     double error = 0;
-    for (int i =0 ; i < numSensors/2; i++){
+    for (int i = 0 ; i < numSensors/2; i++){
        error += -(errorWeights[i]) * (sensorVAL[numSensors -1 -i] - sensorVAL[i]);
     }
 
@@ -225,7 +222,7 @@ double Extern::calcError(cv::Mat &statFrame, vector<char> &sensorCHAR){
     std::vector<double> sensor_list7(sensor7.begin(), sensor7.end());
     cvui::sparkline(statFrame, sensor_list7, 10, 50, 580, 200, 0xffffff);
     
-    return error;
+    return (error - 100 ) /100;
 }
 
 void Extern::calcPredictors(Mat &frame, vector<double> &predictorDeltaMeans){
