@@ -12,7 +12,7 @@ find_package(OpenCV REQUIRED)
 
 find_package(Boost REQUIRED)
 
-add_executable(robonet main.cpp serialib.cpp neural.cpp neural.h external.cpp external.h bandpass.cpp)
+add_executable(robonet main.cpp serialib.cpp neural.cpp LowPassFilter.h LowPassFilter.cpp neural.h external.cpp external.h bandpass.cpp)
 target_link_libraries(robonet clBP ${OpenCV_LIBS})
 
 if(BUILD_TRACKING)

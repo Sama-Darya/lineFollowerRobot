@@ -30,8 +30,7 @@ class Extern {
 	
 	using clk = std::chrono::system_clock;
 	clk::time_point start_time;
-	double errorMult = 2.5;
-	double nnMult = 0;
+
 	
 	static constexpr int nPredictorCols = 6;
 	static constexpr int nPredictorRows = 8;
