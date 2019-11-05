@@ -23,6 +23,7 @@ class Extern {
 	int onStepCompleted(Mat &statFrame, float deltaSensorData, vector<float> &predictorDeltas);
 	float calcError(Mat &statFrame, vector<char> &sensorCHAR);
 	void calcPredictors(Mat &frame, vector<float> &predictorDeltaMeans);
+	int getNpredictors();
                        
 	private:
 	

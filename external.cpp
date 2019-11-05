@@ -59,7 +59,7 @@ int Extern::onStepCompleted(cv::Mat &statFrame, float deltaSensorData, std::vect
   cvui::text(statFrame, 10, 320, "Sensor Error Multiplier: ");
   cvui::trackbar(statFrame, 180, 300, 400, &errorMult, (double)0.0, (double)10.0, 1, "%.2Lf", 0, 0.05);
   cvui::text(statFrame, 10, 370, "Net Output Multiplier: ");
-  cvui::trackbar(statFrame, 180, 350, 400, &nnMult, (double)0.0, (double)1000.0, 1, "%.2Lf", 0, 0.05);
+  cvui::trackbar(statFrame, 180, 350, 400, &nnMult, (double)0.0, (double)300.0, 1, "%.2Lf", 0, 0.05);
   float result = run_samanet(statFrame, predictorDeltas, error); //does one learning iteration, why divide by 5?
   {
     std::vector<double> error_list(prevErrors.begin(), prevErrors.end());
@@ -209,13 +209,17 @@ float Extern::calcError(cv::Mat &statFrame, vector<char> &sensorCHAR){
     return (error) / (mapWhite - mapBlack);
 }
 
-static constexpr int nPredictorCols = 2;
-static constexpr int nPredictorRows = 3;
-static constexpr int nPredictors = nPredictorCols * nPredictorRows * 2; 
+static constexpr int nPredictorCols = 6;
+static constexpr int nPredictorRows = 8;
+static constexpr int nPredictors = nPredictorCols * nPredictorRows;
+
+int Extern::getNpredictors (){
+    return nPredictors;
+}
 
 void Extern::calcPredictors(Mat &frame, vector<float> &predictorDeltaMeans){
 	// Define the rect area that we want to consider.
-    int areaWidth = 600; // 500;
+    int areaWidth = 500;
     int areaHeight = 400;
     int offsetFromTop = 50;
     // VERTICAL RESOLUTION OF CAMERA SHOULD ADJUST
@@ -230,12 +234,26 @@ void Extern::calcPredictors(Mat &frame, vector<float> &predictorDeltaMeans){
     	
 	int areaMiddleLine = area.width / 2 + area.x;
 	for (int k = 0; k < nPredictorRows; ++k) {
-      for (int j = 0; j < nPredictorCols * 2 ; ++j) {
-        auto Pred = Rect(area.x + j * predictorWidth, area.y + k * predictorHeight, predictorWidth, predictorHeight);
-        auto grayMean = mean(Mat(edges, Pred))[0];
-        predictorDeltaMeans.push_back((grayMean - 125) / 255);
-        putText(frame, std::to_string(((grayMean - 125) / 255)), Point{Pred.x + Pred.width / 2 - 13, Pred.y + Pred.height / 2 + 5}, FONT_HERSHEY_TRIPLEX, 0.4, {0, 0, 0});
-        rectangle(frame, Pred, Scalar(50, 50, 50));
+      for (int j = 0; j < nPredictorCols ; ++j) {
+         auto lPred =
+            Rect(areaMiddleLine - (j + 1) * predictorWidth,
+                 area.y + k * predictorHeight, predictorWidth, predictorHeight);
+        auto rPred =
+            Rect(areaMiddleLine + (j)*predictorWidth,
+                 area.y + k * predictorHeight, predictorWidth, predictorHeight);
+        auto grayMeanL = mean(Mat(edges, lPred))[0];
+        auto grayMeanR = mean(Mat(edges, rPred))[0];
+        predictorDeltaMeans.push_back((grayMeanL - grayMeanR) / 255);
+        putText(frame, std::to_string((int)grayMeanL),
+                Point{lPred.x + lPred.width / 2 - 13,
+                      lPred.y + lPred.height / 2 + 5},
+                FONT_HERSHEY_TRIPLEX, 0.4, {0, 0, 0});
+        putText(frame, std::to_string((int)grayMeanR),
+                Point{rPred.x + rPred.width / 2 - 13,
+                      rPred.y + rPred.height / 2 + 5},
+                FONT_HERSHEY_TRIPLEX, 0.4, {0, 0, 0});
+        rectangle(frame, lPred, Scalar(50, 50, 50));
+        rectangle(frame, rPred, Scalar(50, 50, 50));
       }
     }
     line(frame, {areaMiddleLine, 0}, {areaMiddleLine, frame.rows}, Scalar(50, 50, 255));

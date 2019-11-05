@@ -1,7 +1,5 @@
 #include "neural.h"
 #include "clbp/Net.h"
-
-
 #include "cvui.h"
 #include <chrono>
 #include <fstream>
@@ -10,7 +8,6 @@
 #include <opencv2/opencv.hpp>
 #include <string>
 #include <vector>
-
 #include "bandpass.h"
 
 std::vector<std::array<Bandpass, 5>> bandpassFilters;
@@ -19,7 +16,7 @@ static void initialize_filters(int numInputs, float sampleRate) {
   bandpassFilters.resize(numInputs);
   double fs = 1;
   double fmin = fs / 100;
-  double fmax = fs / 10;
+  double fmax = fs / 50;
   double df = (fmax - fmin) / 4.0; // 4 is number of filters minus 1
   for (auto &bank : bandpassFilters) {
     double f = fmin;
@@ -55,8 +52,8 @@ float run_samanet(cv::Mat &statFrame, std::vector<float> &predictorDeltas, float
 
   predictor << ms.count();
   networkInputs.reserve(predictorDeltas.size() * 5);
-  predictor << " " << error;
   for (int j = 0; j < predictorDeltas.size(); ++j) {
+    predictor << " " << error;
     float sample = predictorDeltas[j];
     predictor << " " << sample;
     for (auto &filt : bandpassFilters[j]) {

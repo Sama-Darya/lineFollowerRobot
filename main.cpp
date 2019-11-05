@@ -29,13 +29,10 @@ using namespace cv;
 using namespace std;
 constexpr int ESC_key = 27;
 
-int nPredictors = 12;
-
-
 int main(int, char **) {
-  
   Extern* external = NULL;
   external = new Extern();
+  int nPredictors = external->getNpredictors();
   srand(0); //random number generator
   cv::namedWindow("robot view");
   cvui::init(STAT_WINDOW);
