@@ -16,29 +16,28 @@ public:
     enum actMethod {Act_Sigmoid = 0, Act_Tanh = 1, Act_NONE = 2};
 
     void initNeuron(weightInitMethod _wim, biasInitMethod _bim, Neuron::actMethod _am);
-    void setLearningRate(double _learningRate);
+    void setLearningRate(float _learningRate);
 
-    void setInput(int _index, double _value);
-    void propInputs(int _index, double _value);
+    void setInput(int _index, float _value);
+    void propInputs(int _index, float _value);
     void calcOutput();
-    void genOutput();
     void updateWeights();
-    double doActivation(double _sum);
-    double doActivationPrime(double _input);
-    void setError(double _nextSum);  // for the output layer only
-    void propError(double _nextSum); // used for all layers except the output
+    float doActivation(float _sum);
+    float doActivationPrime(float _input);
+    void setError(float _nextSum);  // for the output layer only
+    void propError(float _nextSum); // used for all layers except the output
 
-    double getOutput();
-    double getSumOutput();
-    double getWeights(int _inputIndex);
-    double getInitWeights(int _inputIndex);
-    double getError();
-    double getWeightChange();
-    double getWeightDistance();
+    float getOutput();
+    float getSumOutput();
+    float getWeights(int _inputIndex);
+    float getInitWeights(int _inputIndex);
+    float getError();
+    float getWeightChange();
+    float getWeightDistance();
     int getnInputs();
     void saveWeights(string _fileName);
 
-    inline void setWeight(int _index, double _weight) {
+    inline void setWeight(int _index, float _weight) {
         assert((_index >= 0) && (_index < nInputs));
         weights[_index] = _weight;
     }
@@ -46,14 +45,15 @@ public:
 
 private:
     int nInputs = 0;
-    double *inputs = 0;
-    double *weights = 0;
-    double *initialWeights = 0;
-    double bias = 0;
-    double error = 0;
-    double output = 0;
-    double learningRate = 0;
-    double sum = 0;
-    double weightChange=0;
+    float *inputs = 0;
+    float *weights = 0;
+    float *initialWeights = 0;
+    float bias = 0;
+    float error = 0;
+    float output = 0;
+    float learningRate = 0;
+    float sum = 0;
+    float weightChange=0;
+    float weightsDifference = 0;
     int actMet = 0;
 };

@@ -28,7 +28,7 @@ Layer::~Layer(){
      * memory allocation created by "new" */
 }
 
-void Layer::setInputs(const double* _inputs){
+void Layer::setInputs(const float* _inputs){
     /*this is only for the first layer*/
     inputs=_inputs;
     for (int j=0; j<nInputs; j++){
@@ -37,7 +37,7 @@ void Layer::setInputs(const double* _inputs){
          * within the scope of this function. this is inside
          * the loop, so that it is set to the first neuron
          * everytime a new value is distributed to neurons */
-        double input= *inputs; //take this input value
+        float input= *inputs; //take this input value
         for (int i=0; i<nNeurons; i++){
             (*neuronsp)->setInput(j,input);
             //set this input value for this neuron
@@ -47,7 +47,7 @@ void Layer::setInputs(const double* _inputs){
     }
 }
 
-void Layer::propInputs(int _index, double _value){
+void Layer::propInputs(int _index, float _value){
     for (int i=0; i<nNeurons; i++){
         neurons[i]->propInputs(_index, _value);
     }
@@ -59,40 +59,36 @@ void Layer::calcOutputs(){
     }
 }
 
-void Layer::genOutput(){
-    for (int i=0; i<nNeurons; i++){
-        neurons[i]->genOutput();
-    }
-}
 
-void Layer::setError(double _leadError){
+void Layer::setError(float _leadError){
     /* this is only for the final layer */
     for (int i=0; i<nNeurons; i++){
         neurons[i]->setError(_leadError);
     }
 }
 
-void Layer::propError(int _neuronIndex, double _nextSum){
+void Layer::propError(int _neuronIndex, float _nextSum){
     neurons[_neuronIndex]->propError(_nextSum);
 }
 
-double Layer::getError(int _neuronIndex){
+float Layer::getError(int _neuronIndex){
     return (neurons[_neuronIndex]->getError());
 }
 
-double Layer::getSumOutput(int _neuronIndex){
+float Layer::getSumOutput(int _neuronIndex){
     return (neurons[_neuronIndex]->getSumOutput());
 }
 
-double Layer::getWeights(int _neuronIndex, int _weightIndex){
+float Layer::getWeights(int _neuronIndex, int _weightIndex){
     return (neurons[_neuronIndex]->getWeights(_weightIndex));
 }
 
-double Layer::getInitWeight(int _neuronIndex, int _weightIndex){
+float Layer::getInitWeight(int _neuronIndex, int _weightIndex){
     return (neurons[_neuronIndex]->getInitWeights(_weightIndex));
 }
 
-double Layer::getWeightChange(){
+float Layer::getWeightChange(){
+    weightChange=0;
     for (int i=0; i<nNeurons; i++){
         weightChange += neurons[i]->getWeightChange();
     }
@@ -101,12 +97,12 @@ double Layer::getWeightChange(){
     return (weightChange);
 }
 
-double Layer::getWeightDistance(){
-    double weightDistance=sqrt(weightChange);
+float Layer::getWeightDistance(){
+    float weightDistance=sqrt(weightChange);
     return (weightDistance);
 }
 
-double Layer::getOutput(int _neuronIndex){
+float Layer::getOutput(int _neuronIndex){
     return (neurons[_neuronIndex]->getOutput());
 }
 
@@ -117,7 +113,7 @@ void Layer::initLayer(Neuron::weightInitMethod _wim, Neuron::biasInitMethod _bim
     }
 }
 
-void Layer::setlearningRate(double _learningRate){
+void Layer::setlearningRate(float _learningRate){
     learningRate=_learningRate;
     for (int i=0; i<nNeurons; i++){
         neurons[i]->setLearningRate(learningRate);

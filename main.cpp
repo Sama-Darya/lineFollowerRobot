@@ -29,7 +29,7 @@ using namespace cv;
 using namespace std;
 constexpr int ESC_key = 27;
 
-int nPredictors = 6 * 8;
+int nPredictors = 12;
 
 
 int main(int, char **) {
@@ -56,7 +56,7 @@ int main(int, char **) {
     return -1;
   }
 
-    std::vector<double> predictorDeltaMeans;
+    std::vector<float> predictorDeltaMeans;
     predictorDeltaMeans.reserve(nPredictors);
     std::vector<char> sensorCHAR;
     sensorCHAR.reserve(9);
@@ -76,7 +76,7 @@ int main(int, char **) {
     for (int i = 0 ; i<9; i++){
       sensorCHAR.push_back(sensorRAW[i]);
     }
-    double sensorError = external->calcError(statFrame, sensorCHAR);
+    float sensorError = external->calcError(statFrame, sensorCHAR);
     if (Ret > 0){
       int speedError = 100 + external->onStepCompleted(statFrame, sensorError, predictorDeltaMeans);
       char speedErrorChar = (char)speedError;

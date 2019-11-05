@@ -7,5 +7,5 @@ class Mat;
 }
 
 void initialize_samanet(int numInputLayers, float sampleRate = 30.f);
-double run_samanet(cv::Mat &statFrame, std::vector<double> &in, double error);
+float run_samanet(cv::Mat &statFrame, std::vector<float> &in, float error);
 void save_samanet();

@@ -35,69 +35,58 @@ std::unique_ptr<Net> samanet;
 void initialize_samanet(int numInputLayers, float sampleRate) {
   numInputLayers *= 5; // 5 is the number of filters
 
-  int nNeurons[] = {18, 9, 1};
+  int nNeurons[] = {5, 3, 1};
   samanet = std::make_unique<Net>(3, nNeurons, numInputLayers);
   samanet->initNetwork(Neuron::W_RANDOM, Neuron::B_NONE, Neuron::Act_Sigmoid);
   samanet->setLearningRate(0.001);
-
   initialize_filters(numInputLayers, sampleRate);
 }
 
 std::ofstream weightDistancesfs("weight_distances.csv");
 std::ofstream predictor("predictor.csv");
 
-double run_samanet(cv::Mat &statFrame, std::vector<double> &predictorDeltas,
-                   double error) {
+bool firstInputs = 1;
+
+float run_samanet(cv::Mat &statFrame, std::vector<float> &predictorDeltas, float error) {
 
   using namespace std::chrono;
-  milliseconds ms =
-      duration_cast<milliseconds>(system_clock::now().time_since_epoch());
+  milliseconds ms = duration_cast<milliseconds>(system_clock::now().time_since_epoch());
+  std::vector<float> networkInputs;
 
-  std::vector<double> networkInputs;
-
-  //predictor << ms.count();
+  predictor << ms.count();
   networkInputs.reserve(predictorDeltas.size() * 5);
+  predictor << " " << error;
   for (int j = 0; j < predictorDeltas.size(); ++j) {
-    predictor << " " << error;
     float sample = predictorDeltas[j];
-      //if (j == 0) {
-        predictor << " " << sample;
-      //}
-    //cout << "predictor value is: " << sample << endl;
+    predictor << " " << sample;
     for (auto &filt : bandpassFilters[j]) {
       auto filtered = filt.filter(sample);
-      //cout << "predictor value is: " << filtered << endl;
       networkInputs.push_back(filtered);
-      //if (j == 0) {
-        predictor << " " << filtered;
-      //}
+      predictor << " " << filtered;
     }
   }
   predictor << "\n" ;
-
-  samanet->setInputs(networkInputs.data()); //then take a new action
-  samanet->propInputs();
-
+  if (firstInputs == 1){
+    samanet->setInputs(networkInputs.data());
+    samanet->propInputs();
+    firstInputs = 0;
+    cout << "DONE THIS" << endl;
+  }
   samanet->setError(error);
   samanet->propError();
   samanet->updateWeights(); // Learn from previous action
-  
-  save_samanet();
+  samanet->setInputs(networkInputs.data()); //then take a new action
+  samanet->propInputs();
+
+  samanet->saveWeights();
 
   weightDistancesfs << samanet->getLayerWeightDistance(0) << " " << samanet->getLayerWeightDistance(1) << " " << samanet->getLayerWeightDistance(2) << " " << samanet->getWeightDistance() << "\n";
-  //cout << "weight distance is: " << samanet->getWeightDistance() << endl;
-
-  double outGentle = samanet->getOutput(0);
-  //double outMedium = samanet->getOutput(1);
-  //double outSharp = samanet->getOutput(2);
-  
-  double resultNN = 1 * outGentle ; //+ 2 * outMedium + 3 * outSharp;
-  
-  //cout << "first: " << outGentle << " second: " << outMedium << " third: " << outSharp << endl;
-  
+  float outGentle = samanet->getOutput(0);
+  //float outMedium = samanet->getOutput(1);
+  //float outSharp = samanet->getOutput(2);
+  float resultNN = 1 * outGentle;
   return resultNN;
 }
 
-void save_samanet() { samanet->saveWeights(); }
 
 

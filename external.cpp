@@ -33,70 +33,52 @@ using namespace cv;
 Extern::Extern(){
 	
 }
+int samplingFreq = 30; // 30Hz is the sampling frequency
+int figureLength = 5; //seconds
 
-	int samplingFreq = 30; // 30Hz is the sampling frequency
-	int figureLength = 5; //seconds
-	
-	boost::circular_buffer<double> prevErrors(samplingFreq * figureLength);
-	
-	boost::circular_buffer<double> sensor0(samplingFreq * figureLength);
-	boost::circular_buffer<double> sensor1(samplingFreq * figureLength);
-	boost::circular_buffer<double> sensor2(samplingFreq * figureLength);
-	boost::circular_buffer<double> sensor3(samplingFreq * figureLength); 
-	boost::circular_buffer<double> sensor4(samplingFreq * figureLength); 
-	boost::circular_buffer<double> sensor5(samplingFreq * figureLength); 
-	boost::circular_buffer<double> sensor6(samplingFreq * figureLength); 
-	boost::circular_buffer<double> sensor7(samplingFreq * figureLength);
-	
-	std::ofstream datafs("data.csv");
+boost::circular_buffer<float> prevErrors(samplingFreq * figureLength);
+
+boost::circular_buffer<float> sensor0(samplingFreq * figureLength);
+boost::circular_buffer<float> sensor1(samplingFreq * figureLength);
+boost::circular_buffer<float> sensor2(samplingFreq * figureLength);
+boost::circular_buffer<float> sensor3(samplingFreq * figureLength); 
+boost::circular_buffer<float> sensor4(samplingFreq * figureLength); 
+boost::circular_buffer<float> sensor5(samplingFreq * figureLength); 
+boost::circular_buffer<float> sensor6(samplingFreq * figureLength); 
+boost::circular_buffer<float> sensor7(samplingFreq * figureLength);
+
+std::ofstream datafs("data.csv");
     
-double errorMult = 1;
+double errorMult = 5;
 double nnMult = 0;
 
-
-int Extern::onStepCompleted(cv::Mat &statFrame, double deltaSensorData,
-                        std::vector<double> &predictorDeltas) {
+int Extern::onStepCompleted(cv::Mat &statFrame, float deltaSensorData, std::vector<float> &predictorDeltas) {
   prevErrors.push_back(deltaSensorData); //puts the errors in a buffer for plotting
-
-  double errorGain = 1;
-  double error = errorGain * deltaSensorData;
-
+  float errorGain = 1;
+  float error = errorGain * deltaSensorData;
   cvui::text(statFrame, 10, 320, "Sensor Error Multiplier: ");
-  cvui::trackbar(statFrame, 180, 300, 400, &errorMult, (double)0.0, (double)5,
-                 1, "%.2Lf", 0, 0.05);
-
+  cvui::trackbar(statFrame, 180, 300, 400, &errorMult, (double)0.0, (double)10.0, 1, "%.2Lf", 0, 0.05);
   cvui::text(statFrame, 10, 370, "Net Output Multiplier: ");
-  cvui::trackbar(statFrame, 180, 350, 400, &nnMult, (double)0.0, (double)5.0,
-                 1, "%.2Lf", 0, 0.05);
-
-  double result = run_samanet(statFrame, predictorDeltas, error); //does one learning iteration, why divide by 5?
-
+  cvui::trackbar(statFrame, 180, 350, 400, &nnMult, (double)0.0, (double)1000.0, 1, "%.2Lf", 0, 0.05);
+  float result = run_samanet(statFrame, predictorDeltas, error); //does one learning iteration, why divide by 5?
   {
     std::vector<double> error_list(prevErrors.begin(), prevErrors.end());
     cvui::sparkline(statFrame, error_list, 10, 50, 580, 200, 0x000000);
-    float elapsed_s = std::chrono::duration_cast<std::chrono::milliseconds>(
-                          clk::now() - start_time)
-                          .count() /
-                      1000.f;
+    float elapsed_s = std::chrono::duration_cast<std::chrono::milliseconds>(clk::now() - start_time) .count() / 1000.f;
     float chart_start_t = prevErrors.full() ? elapsed_s - 60 : 0.f;
     cvui::printf(statFrame, 10, 250, "%.2fs", chart_start_t);
     cvui::printf(statFrame, 540, 250, "%.2fs", elapsed_s);
   }
-  double reflex = error * errorMult;
-  double learning = result * nnMult * 1;
-  
+  float reflex = error * errorMult;
+  float learning = result * nnMult * 1;
   cvui::text(statFrame, 220, 10, "Net out:");
   cvui::printf(statFrame, 300, 10, "%+.4lf (%+.4lf)", result, learning);
-
   cvui::text(statFrame, 220, 30, "Error:");
   cvui::printf(statFrame, 300, 30, "%+.4lf (%+.4lf)", deltaSensorData, reflex);
-  
   int gain = 1;
-  double errorSpeed = (reflex + learning) * gain;
-
+  float errorSpeed = (reflex + learning) * gain;
   using namespace std::chrono;
-  milliseconds ms =
-      duration_cast<milliseconds>(system_clock::now().time_since_epoch());
+  milliseconds ms = duration_cast<milliseconds>(system_clock::now().time_since_epoch());
 
   datafs << deltaSensorData << " "   // error from error units
          << reflex << " "            // reflex
@@ -105,13 +87,10 @@ int Extern::onStepCompleted(cv::Mat &statFrame, double deltaSensorData,
 
   return (int)errorSpeed;
 }
-
-
 Bandpass sensorFilters[8];
 
 float cutOff = 10;
 float sampFreq = 0.033;
-
 LowPassFilter lpf0(cutOff, sampFreq);
 LowPassFilter lpf1(cutOff, sampFreq);
 LowPassFilter lpf2(cutOff, sampFreq);
@@ -121,8 +100,7 @@ LowPassFilter lpf5(cutOff, sampFreq);
 LowPassFilter lpf6(cutOff, sampFreq);
 LowPassFilter lpf7(cutOff, sampFreq);
 
-
-double Extern::calcError(cv::Mat &statFrame, vector<char> &sensorCHAR){
+float Extern::calcError(cv::Mat &statFrame, vector<char> &sensorCHAR){
 	const int numSensors = 8;
 	int startIndex = 8;
 	int sensorINT[numSensors+1]= {0,0,0,0,0,0,0,0,0};
@@ -133,27 +111,33 @@ double Extern::calcError(cv::Mat &statFrame, vector<char> &sensorCHAR){
 		}
 	}
     float sensorVAL[numSensors+1]= {0,0,0,0,0,0,0,0,0};
-    float mapBlack = 100; //y1
-    float mapWhite = 200; //y2
+    float mapBlack = 50; //y1
+    float mapWhite = 250; //y2
     float m [8+1] = {0,0,0,0,0,0,0,0,0};
-    char colorName[8] = {'R', 'O', 'Y', 'G', 'B', 'V', 'P', 'W'};
+    char colorName[8] = {'R', 'O', 'Y', 'G', 'B', 'V', 'P', 'W'}; // Red,Orange,Yellow,Green,Blue,Violet,Pink,White
+    const int colorCode[8] = {0xff0000, 0xff9900, 0xffff00, 0x00ff00, 0x00ffff, 0x9900ff, 0xff00ff, 0xffffff};
     
     for (int i = 0; i < numSensors; i++){
       int remainIndex = (startIndex + i) % (numSensors+1);
       sensorVAL[i] = sensorINT[remainIndex];
-      threshWhite[i] = calibWhite[i] - 1 * diffCalib[i] / 5 ;
-      threshBlack[i] = calibBlack[i] + 1 * diffCalib[i] / 5 ;
+      //threshWhite[i] = calibWhite[i] - 1.5 * diffCalib[i] / 5 ;
+      //threshBlack[i] = calibBlack[i] + 1.5 * diffCalib[i] / 5 ;
       if (sensorVAL[i] > threshWhite[i] ){calibWhite[i] = sensorVAL[i];}
       if (sensorVAL[i] < threshBlack[i] ){calibBlack[i] = sensorVAL[i];}
       diffCalib[i] = calibWhite[i] - calibBlack[i];
-      m[i] = (mapWhite - mapBlack)/(calibWhite[i] - calibBlack[i]);
+      m[i] = (mapWhite - mapBlack)/(diffCalib[i]);
       sensorVAL[i] = m[i] * (sensorINT[remainIndex] - calibBlack[i]) + mapBlack;
+      cvui::printf(statFrame, 10 + 50 * i , 265, 0.4, 0x000000, "%d", (int)threshBlack[i]);
+      cvui::printf(statFrame, 10 + 50 * i , 275, 0.4, colorCode[i], "%d", (int)sensorINT[remainIndex]);
+      cvui::printf(statFrame, 10 + 50 * i , 285, 0.4, 0xffffff, "%d", (int)threshWhite[i]);
+      /*
       cout << colorName[i] << " Bcal: " << (int)calibBlack[i] << " " << (int)threshBlack[i] 
             << " raw: " << (int)sensorINT[remainIndex] 
             << " Wcal: " << (int)threshWhite[i] << " " << (int)calibWhite[i] 
             << " cal: " << (int)sensorVAL[i] << endl;
+            */
     }
-    cout << " ------------------------------- "<< endl;
+    //cout << " ------------------------------- "<< endl;
     
     sensorVAL[0] = lpf0.update(sensorVAL[0]);
     sensorVAL[1] = lpf1.update(sensorVAL[1]);
@@ -163,16 +147,16 @@ double Extern::calcError(cv::Mat &statFrame, vector<char> &sensorCHAR){
     sensorVAL[5] = lpf5.update(sensorVAL[5]);
     sensorVAL[6] = lpf6.update(sensorVAL[6]);
     sensorVAL[7] = lpf7.update(sensorVAL[7]);
-
-    double errorWeights[numSensors/2] = {2.5,2,1.5,1};
-    double error = 0;
+    
+    float errorWeights[numSensors/2] = {4,3,2,1};
+    float error = 0;
     for (int i = 0 ; i < numSensors/2; i++){
        error += -(errorWeights[i]) * (sensorVAL[numSensors -1 -i] - sensorVAL[i]);
     }
 
     //plot the sensor values:
-    double minVal = 90; 
-    double maxVal = 210;
+    float minVal = 90; 
+    float maxVal = 210;
     
     sensor0.push_back(sensorVAL[0]); //puts the errors in a buffer for plotting
     sensor0[0] = minVal;
@@ -190,7 +174,7 @@ double Extern::calcError(cv::Mat &statFrame, vector<char> &sensorCHAR){
     sensor2[0] = minVal;
     sensor2[1] = maxVal;
     std::vector<double> sensor_list2(sensor2.begin(), sensor2.end());
-    cvui::sparkline(statFrame, sensor_list2, 10, 50, 580, 200, 0xffff00);
+    cvui::sparkline(statFrame, sensor_list2, 10, 50, 580, 200, 0xffff00); 
     
     sensor3.push_back(sensorVAL[3]); //puts the errors in a buffer for plotting
     sensor3[0] = minVal;
@@ -222,11 +206,14 @@ double Extern::calcError(cv::Mat &statFrame, vector<char> &sensorCHAR){
     std::vector<double> sensor_list7(sensor7.begin(), sensor7.end());
     cvui::sparkline(statFrame, sensor_list7, 10, 50, 580, 200, 0xffffff);
     
-    return (error - 100 ) /100;
+    return (error) / (mapWhite - mapBlack);
 }
 
-void Extern::calcPredictors(Mat &frame, vector<double> &predictorDeltaMeans){
+static constexpr int nPredictorCols = 2;
+static constexpr int nPredictorRows = 3;
+static constexpr int nPredictors = nPredictorCols * nPredictorRows * 2; 
 
+void Extern::calcPredictors(Mat &frame, vector<float> &predictorDeltaMeans){
 	// Define the rect area that we want to consider.
     int areaWidth = 600; // 500;
     int areaHeight = 400;
@@ -246,8 +233,8 @@ void Extern::calcPredictors(Mat &frame, vector<double> &predictorDeltaMeans){
       for (int j = 0; j < nPredictorCols * 2 ; ++j) {
         auto Pred = Rect(area.x + j * predictorWidth, area.y + k * predictorHeight, predictorWidth, predictorHeight);
         auto grayMean = mean(Mat(edges, Pred))[0];
-        predictorDeltaMeans.push_back((grayMean) / 255);
-        putText(frame, std::to_string((int)grayMean), Point{Pred.x + Pred.width / 2 - 13, Pred.y + Pred.height / 2 + 5}, FONT_HERSHEY_TRIPLEX, 0.4, {0, 0, 0});
+        predictorDeltaMeans.push_back((grayMean - 125) / 255);
+        putText(frame, std::to_string(((grayMean - 125) / 255)), Point{Pred.x + Pred.width / 2 - 13, Pred.y + Pred.height / 2 + 5}, FONT_HERSHEY_TRIPLEX, 0.4, {0, 0, 0});
         rectangle(frame, Pred, Scalar(50, 50, 50));
       }
     }
