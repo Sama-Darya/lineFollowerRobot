@@ -49,7 +49,7 @@ boost::circular_buffer<float> sensor7(samplingFreq * figureLength);
 
 std::ofstream datafs("data.csv");
     
-double errorMult = 5;
+double errorMult = 3;
 double nnMult = 0;
 
 int Extern::onStepCompleted(cv::Mat &statFrame, float deltaSensorData, std::vector<float> &predictorDeltas) {
@@ -59,7 +59,7 @@ int Extern::onStepCompleted(cv::Mat &statFrame, float deltaSensorData, std::vect
   cvui::text(statFrame, 10, 320, "Sensor Error Multiplier: ");
   cvui::trackbar(statFrame, 180, 300, 400, &errorMult, (double)0.0, (double)10.0, 1, "%.2Lf", 0, 0.05);
   cvui::text(statFrame, 10, 370, "Net Output Multiplier: ");
-  cvui::trackbar(statFrame, 180, 350, 400, &nnMult, (double)0.0, (double)300.0, 1, "%.2Lf", 0, 0.05);
+  cvui::trackbar(statFrame, 180, 350, 400, &nnMult, (double)0.0, (double)20.0, 1, "%.2Lf", 0, 0.05);
   float result = run_samanet(statFrame, predictorDeltas, error); //does one learning iteration, why divide by 5?
   {
     std::vector<double> error_list(prevErrors.begin(), prevErrors.end());
@@ -120,16 +120,14 @@ float Extern::calcError(cv::Mat &statFrame, vector<char> &sensorCHAR){
     for (int i = 0; i < numSensors; i++){
       int remainIndex = (startIndex + i) % (numSensors+1);
       sensorVAL[i] = sensorINT[remainIndex];
-      //threshWhite[i] = calibWhite[i] - 1.5 * diffCalib[i] / 5 ;
-      //threshBlack[i] = calibBlack[i] + 1.5 * diffCalib[i] / 5 ;
       if (sensorVAL[i] > threshWhite[i] ){calibWhite[i] = sensorVAL[i];}
       if (sensorVAL[i] < threshBlack[i] ){calibBlack[i] = sensorVAL[i];}
       diffCalib[i] = calibWhite[i] - calibBlack[i];
       m[i] = (mapWhite - mapBlack)/(diffCalib[i]);
       sensorVAL[i] = m[i] * (sensorINT[remainIndex] - calibBlack[i]) + mapBlack;
-      cvui::printf(statFrame, 10 + 50 * i , 265, 0.4, 0x000000, "%d", (int)threshBlack[i]);
-      cvui::printf(statFrame, 10 + 50 * i , 275, 0.4, colorCode[i], "%d", (int)sensorINT[remainIndex]);
-      cvui::printf(statFrame, 10 + 50 * i , 285, 0.4, 0xffffff, "%d", (int)threshWhite[i]);
+      cvui::printf(statFrame, 10 + 75 * i , 265, 0.4, 0x000000, "%d", (int)threshBlack[i]);
+      cvui::printf(statFrame, 10 + 75 * i , 275, 0.4, colorCode[i], "%d", (int)sensorINT[remainIndex]);
+      cvui::printf(statFrame, 10 + 75 * i , 285, 0.4, 0xffffff, "%d", (int)threshWhite[i]);
       /*
       cout << colorName[i] << " Bcal: " << (int)calibBlack[i] << " " << (int)threshBlack[i] 
             << " raw: " << (int)sensorINT[remainIndex] 
@@ -151,7 +149,7 @@ float Extern::calcError(cv::Mat &statFrame, vector<char> &sensorCHAR){
     float errorWeights[numSensors/2] = {4,3,2,1};
     float error = 0;
     for (int i = 0 ; i < numSensors/2; i++){
-       error += -(errorWeights[i]) * (sensorVAL[numSensors -1 -i] - sensorVAL[i]);
+       error += (errorWeights[i]) * (sensorVAL[i] - sensorVAL[numSensors -1 -i]);
     }
 
     //plot the sensor values:
@@ -219,7 +217,7 @@ int Extern::getNpredictors (){
 
 void Extern::calcPredictors(Mat &frame, vector<float> &predictorDeltaMeans){
 	// Define the rect area that we want to consider.
-    int areaWidth = 500;
+    int areaWidth = 600;
     int areaHeight = 400;
     int offsetFromTop = 50;
     // VERTICAL RESOLUTION OF CAMERA SHOULD ADJUST
@@ -233,6 +231,9 @@ void Extern::calcPredictors(Mat &frame, vector<float> &predictorDeltaMeans){
     predictorDeltaMeans.clear();
     	
 	int areaMiddleLine = area.width / 2 + area.x;
+    
+    double predThreshB[nPredictorRows] = {30,30,30,30,40,50,60,70};
+    double predThreshW[nPredictorRows] = {100,100,100,100,110,120,130,140};
 	for (int k = 0; k < nPredictorRows; ++k) {
       for (int j = 0; j < nPredictorCols ; ++j) {
          auto lPred =
@@ -243,8 +244,13 @@ void Extern::calcPredictors(Mat &frame, vector<float> &predictorDeltaMeans){
                  area.y + k * predictorHeight, predictorWidth, predictorHeight);
         auto grayMeanL = mean(Mat(edges, lPred))[0];
         auto grayMeanR = mean(Mat(edges, rPred))[0];
-        predictorDeltaMeans.push_back((grayMeanL - grayMeanR) / 255);
-        putText(frame, std::to_string((int)grayMeanL),
+        if (grayMeanL < predThreshB[k]){grayMeanL = predThreshB[k];}
+        if (grayMeanR < predThreshB[k]){grayMeanR = predThreshB[k];}
+        if (grayMeanL > predThreshW[k]){grayMeanL = predThreshW[k];}
+        if (grayMeanR > predThreshW[k]){grayMeanR = predThreshW[k];}
+        auto predValue = (grayMeanL - grayMeanR) / 10;
+        predictorDeltaMeans.push_back(predValue);
+        putText(frame, std::to_string((int)(grayMeanL - grayMeanR)),
                 Point{lPred.x + lPred.width / 2 - 13,
                       lPred.y + lPred.height / 2 + 5},
                 FONT_HERSHEY_TRIPLEX, 0.4, {0, 0, 0});

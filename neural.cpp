@@ -9,20 +9,55 @@
 #include <string>
 #include <vector>
 #include "bandpass.h"
+#include <boost/circular_buffer.hpp>
+
+using namespace std;
+
 
 std::vector<std::array<Bandpass, 5>> bandpassFilters;
 
+boost::circular_buffer<double> predVector1[48];
+boost::circular_buffer<double> predVector2[48];
+boost::circular_buffer<double> predVector3[48];
+boost::circular_buffer<double> predVector4[48];
+boost::circular_buffer<double> predVector5[48];
+
 static void initialize_filters(int numInputs, float sampleRate) {
+
+  int nPred = numInputs / 5;
+  
+  for (int i = 0; i < nPred; i++){
+    predVector1[i].rresize(6);
+    predVector2[i].rresize(12);
+    predVector3[i].rresize(18);
+    predVector4[i].rresize(24);
+    predVector5[i].rresize(30);
+  }
+  
   bandpassFilters.resize(numInputs);
   double fs = 1;
-  double fmin = fs / 100;
-  double fmax = fs / 50;
+  int minT = 100;
+  int maxT = 150;
+  double fmin = fs / maxT;
+  double fmax = fs / minT;
   double df = (fmax - fmin) / 4.0; // 4 is number of filters minus 1
   for (auto &bank : bandpassFilters) {
     double f = fmin;
     for (auto &filt : bank) {
       filt.setParameters(f, 0.51);
       f += df;
+      
+      for(int k=0;k<maxT;k++){
+        double a = 0;
+        if (k==minT){
+          a = 1;
+        }
+        double b = filt.filter(a);
+        assert(b != NAN);
+        assert(b != INFINITY);
+      }
+      filt.reset();
+      
     }
   }
 }
@@ -32,7 +67,7 @@ std::unique_ptr<Net> samanet;
 void initialize_samanet(int numInputLayers, float sampleRate) {
   numInputLayers *= 5; // 5 is the number of filters
 
-  int nNeurons[] = {5, 3, 1};
+  int nNeurons[] = {18, 9, 1};
   samanet = std::make_unique<Net>(3, nNeurons, numInputLayers);
   samanet->initNetwork(Neuron::W_RANDOM, Neuron::B_NONE, Neuron::Act_Sigmoid);
   samanet->setLearningRate(0.001);
@@ -52,6 +87,31 @@ float run_samanet(cv::Mat &statFrame, std::vector<float> &predictorDeltas, float
 
   predictor << ms.count();
   networkInputs.reserve(predictorDeltas.size() * 5);
+  
+  for (int i =0; i < predictorDeltas.size(); i++){
+    predictor << " " << error;
+    float sampleValue = predictorDeltas[i];
+    predictor << " " << sampleValue;
+    predVector1[i].push_back(sampleValue);
+    predVector2[i].push_back(sampleValue);
+    predVector3[i].push_back(sampleValue);
+    predVector4[i].push_back(sampleValue);
+    predVector5[i].push_back(sampleValue);
+    
+    networkInputs.push_back(predVector1[i][0]);
+    networkInputs.push_back(predVector2[i][0]);
+    networkInputs.push_back(predVector3[i][0]);
+    networkInputs.push_back(predVector4[i][0]);
+    networkInputs.push_back(predVector5[i][0]);
+    
+    predictor << " " << predVector1[i][0];
+    predictor << " " << predVector2[i][0];
+    predictor << " " << predVector3[i][0];
+    predictor << " " << predVector4[i][0];
+    predictor << " " << predVector5[i][0];
+  }
+  
+/*
   for (int j = 0; j < predictorDeltas.size(); ++j) {
     predictor << " " << error;
     float sample = predictorDeltas[j];
@@ -61,7 +121,8 @@ float run_samanet(cv::Mat &statFrame, std::vector<float> &predictorDeltas, float
       networkInputs.push_back(filtered);
       predictor << " " << filtered;
     }
-  }
+  } */
+  
   predictor << "\n" ;
   if (firstInputs == 1){
     samanet->setInputs(networkInputs.data());
