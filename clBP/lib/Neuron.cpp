@@ -112,7 +112,7 @@ float Neuron::getSumOutput(){
 float Neuron::doActivation(float _sum){
     switch(actMet){
         case 0:
-            output= (1/(1+(exp(-_sum)))) - 0.5;
+            output= (1/(1+(exp(-_sum/nInputs)))) - 0.5;
             break;
         case 1:
             output = tanh(_sum) * 2;

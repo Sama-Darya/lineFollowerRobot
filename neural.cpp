@@ -25,13 +25,14 @@ boost::circular_buffer<double> predVector5[48];
 static void initialize_filters(int numInputs, float sampleRate) {
 
   int nPred = numInputs / 5;
-  
+  int delayFactor[8] = {19,18,17,16,15,13,12,10};
   for (int i = 0; i < nPred; i++){
-    predVector1[i].rresize(6);
-    predVector2[i].rresize(12);
-    predVector3[i].rresize(18);
-    predVector4[i].rresize(24);
-    predVector5[i].rresize(30);
+    int j= (int)(i / 6);
+    predVector1[i].rresize(delayFactor[j]-3);
+    predVector2[i].rresize(delayFactor[j]-1);
+    predVector3[i].rresize(delayFactor[j]+0);
+    predVector4[i].rresize(delayFactor[j]+1);
+    predVector5[i].rresize(delayFactor[j]+3);
   }
   
   bandpassFilters.resize(numInputs);
@@ -67,10 +68,10 @@ std::unique_ptr<Net> samanet;
 void initialize_samanet(int numInputLayers, float sampleRate) {
   numInputLayers *= 5; // 5 is the number of filters
 
-  int nNeurons[] = {18, 9, 1};
+  int nNeurons[] = {18, 9, 4};
   samanet = std::make_unique<Net>(3, nNeurons, numInputLayers);
   samanet->initNetwork(Neuron::W_RANDOM, Neuron::B_NONE, Neuron::Act_Sigmoid);
-  samanet->setLearningRate(0.001);
+  samanet->setLearningRate(0.01);
   initialize_filters(numInputLayers, sampleRate);
 }
 
@@ -139,10 +140,12 @@ float run_samanet(cv::Mat &statFrame, std::vector<float> &predictorDeltas, float
   samanet->saveWeights();
 
   weightDistancesfs << samanet->getLayerWeightDistance(0) << " " << samanet->getLayerWeightDistance(1) << " " << samanet->getLayerWeightDistance(2) << " " << samanet->getWeightDistance() << "\n";
-  float outGentle = samanet->getOutput(0);
-  //float outMedium = samanet->getOutput(1);
-  //float outSharp = samanet->getOutput(2);
-  float resultNN = 1 * outGentle;
+  float coeff[4] = {1,2,3,4};
+  float outSmall = samanet->getOutput(0);
+  float outMedium = samanet->getOutput(1);
+  float outLarge = samanet->getOutput(2);
+  float outExtraLarge = samanet->getOutput(3);
+  float resultNN = (coeff[0]*outSmall) + (coeff[1]*outMedium) + (coeff[2]*outLarge) + (coeff[3]*outExtraLarge);
   return resultNN;
 }
 
