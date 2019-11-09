@@ -59,6 +59,10 @@ void Neuron::initNeuron(weightInitMethod _wim, biasInitMethod _bim, Neuron::actM
                  * set to a value between 0 and 1 */
         }
         initialWeights[i] = weights[i];
+        weightSum = 0;
+          for (int i=0; i<nInputs; i++){
+              weightSum += weights[i];
+          }
     }
     switch (_bim){
         case B_NONE:
@@ -81,25 +85,6 @@ void Neuron::initNeuron(weightInitMethod _wim, biasInitMethod _bim, Neuron::actM
     }
 }
 
-void Neuron::calcOutput(){
-    float* inputsp= inputs;
-    float* weightsp= weights;
-    /* making copies of the pointers for the scope of this
- * funciton so that the original pinters are unchanged and can
- * be used as a reference in other functiond simultaneously */
-    sum=0;
-    for (int i=0; i<nInputs; i++){
-        float input= *inputsp;
-        float weight= *weightsp;
-        sum += input * weight;
-        inputsp++;
-        weightsp++;
-    }
-    sum += bias;
-    output = doActivation(sum);
-    //assert(std::isfinite(output));
-    //cout << "from Neuron, output is: " << output << endl;
-}
 
 float Neuron::getOutput(){
     return (output);
@@ -112,7 +97,7 @@ float Neuron::getSumOutput(){
 float Neuron::doActivation(float _sum){
     switch(actMet){
         case 0:
-            output= (1/(1+(exp(-_sum/nInputs)))) - 0.5;
+            output= (1/(1+(exp(-_sum)))) - 0.5;
             break;
         case 1:
             output = tanh(_sum) * 2;
@@ -144,6 +129,19 @@ void Neuron::setLearningRate(float _learningRate){
     learningRate=_learningRate;
 }
 
+void Neuron::calcOutput(){
+    sum=0;
+    for (int i=0; i<nInputs; i++){
+        sum += inputs[i] * weights[i];
+    }
+    sum += bias;
+    sum = (sum * 1) / weightSum;
+    //cout << "Neuron: " << sum <<  "  ............   " << weightSum << endl;
+    assert(std::isfinite(sum));
+    output = doActivation(sum);
+    assert(std::isfinite(output));
+}
+
 void Neuron::setError(float _leadError){
     error = _leadError * doActivationPrime(sum);
     assert(std::isfinite(error));
@@ -157,8 +155,10 @@ void Neuron::propError(float _nextSum){
 }
 
 void Neuron::updateWeights(){
+  weightSum = 0;
     for (int i=0; i<nInputs; i++){
         weights[i] += learningRate * (error * inputs[i]);
+        weightSum += abs(weights[i]);
     }
 }
 

@@ -30,7 +30,7 @@ Net::Net(int _nLayers, int* _nNeurons, int _nInputs)
     for (int i=0; i<nLayers; i++){
         nNeurons += layers[i]->getnNeurons();
     }
-    
+
     cout << "number of inputs are: " << nInputs << endl;
 }
 
@@ -89,24 +89,37 @@ Layer* Net::getLayer(int _layerIndex){
 }
 
 void Net::propError(){
-    float tempError=0;
-    float tempWeight=0;
-    for (int i=nLayers-1; i>0 ; i--){
-        for (int k=0; k<layers[i-1]->getnNeurons();k++){
-            float sum=0;
-            for (int j=0; j<layers[i]->getnNeurons(); j++){
-                tempError=layers[i]->getError(j);
-                tempWeight=layers[i]->getWeights(j,k);
-                sum+=tempError * tempWeight;
+    float tempError = 0;
+    float tempWeight = 0;
+    for (int i = nLayers-1; i > 0 ; i--){
+        for (int k = 0; k < layers[i-1]->getnNeurons(); k++){
+            float sum = 0;
+            float normSum = 0;
+            float weightSumer = 0;
+            int weightCounter = 0;
+            for (int j = 0; j < layers[i]->getnNeurons(); j++){
+                tempError = layers[i]->getError(j);
+                tempWeight = layers[i]->getWeights(j,k);
+                sum += tempError * tempWeight;
+                weightSumer += abs(tempWeight);
+                weightCounter += 1;
             }
-            layers[i-1]->propError(k, sum);
-        }
+            assert(std::isfinite(sum));
+            assert(std::isfinite(weightSumer));
+            assert(std::isfinite(weightCounter));
+            normSum = (sum * 1) / weightSumer;
+            assert(std::isfinite(normSum));
+            //cout << " Net: " << sum <<  "  ............   " <<  weightSumer << endl;
+            layers[i-1]->propError(k, normSum);
+          }
     }
 }
 
 void Net::setError(float _leadError){
     /* this is only for the final layer */
-    layers[nLayers-1]->setError(_leadError);
+    theLeadError = _leadError;
+    cout<< "leadError: " << theLeadError << endl;
+    layers[nLayers-1]->setError(theLeadError);
     /* if the leadError was diff. for each output neuron
      * then it would be implemented in a for-loop */
 }

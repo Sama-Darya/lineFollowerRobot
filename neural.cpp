@@ -34,7 +34,7 @@ static void initialize_filters(int numInputs, float sampleRate) {
     predVector4[i].rresize(delayFactor[j]+1);
     predVector5[i].rresize(delayFactor[j]+3);
   }
-  
+
   bandpassFilters.resize(numInputs);
   double fs = 1;
   int minT = 100;
@@ -47,7 +47,7 @@ static void initialize_filters(int numInputs, float sampleRate) {
     for (auto &filt : bank) {
       filt.setParameters(f, 0.51);
       f += df;
-      
+
       for(int k=0;k<maxT;k++){
         double a = 0;
         if (k==minT){
@@ -58,18 +58,18 @@ static void initialize_filters(int numInputs, float sampleRate) {
         assert(b != INFINITY);
       }
       filt.reset();
-      
+
     }
   }
 }
 
 std::unique_ptr<Net> samanet;
+const int numLayers = 7;
 
 void initialize_samanet(int numInputLayers, float sampleRate) {
   numInputLayers *= 5; // 5 is the number of filters
-
-  int nNeurons[] = {18, 9, 4};
-  samanet = std::make_unique<Net>(3, nNeurons, numInputLayers);
+  int nNeurons[numLayers] = {5, 5, 5, 5, 5, 5, 4};
+  samanet = std::make_unique<Net>(numLayers, nNeurons, numInputLayers);
   samanet->initNetwork(Neuron::W_RANDOM, Neuron::B_NONE, Neuron::Act_Sigmoid);
   samanet->setLearningRate(0.01);
   initialize_filters(numInputLayers, sampleRate);
@@ -88,7 +88,7 @@ float run_samanet(cv::Mat &statFrame, std::vector<float> &predictorDeltas, float
 
   predictor << ms.count();
   networkInputs.reserve(predictorDeltas.size() * 5);
-  
+
   for (int i =0; i < predictorDeltas.size(); i++){
     predictor << " " << error;
     float sampleValue = predictorDeltas[i];
@@ -98,20 +98,20 @@ float run_samanet(cv::Mat &statFrame, std::vector<float> &predictorDeltas, float
     predVector3[i].push_back(sampleValue);
     predVector4[i].push_back(sampleValue);
     predVector5[i].push_back(sampleValue);
-    
+
     networkInputs.push_back(predVector1[i][0]);
     networkInputs.push_back(predVector2[i][0]);
     networkInputs.push_back(predVector3[i][0]);
     networkInputs.push_back(predVector4[i][0]);
     networkInputs.push_back(predVector5[i][0]);
-    
+
     predictor << " " << predVector1[i][0];
     predictor << " " << predVector2[i][0];
     predictor << " " << predVector3[i][0];
     predictor << " " << predVector4[i][0];
     predictor << " " << predVector5[i][0];
   }
-  
+
 /*
   for (int j = 0; j < predictorDeltas.size(); ++j) {
     predictor << " " << error;
@@ -123,7 +123,7 @@ float run_samanet(cv::Mat &statFrame, std::vector<float> &predictorDeltas, float
       predictor << " " << filtered;
     }
   } */
-  
+
   predictor << "\n" ;
   if (firstInputs == 1){
     samanet->setInputs(networkInputs.data());
@@ -136,10 +136,13 @@ float run_samanet(cv::Mat &statFrame, std::vector<float> &predictorDeltas, float
   samanet->updateWeights(); // Learn from previous action
   samanet->setInputs(networkInputs.data()); //then take a new action
   samanet->propInputs();
-
   samanet->saveWeights();
 
-  weightDistancesfs << samanet->getLayerWeightDistance(0) << " " << samanet->getLayerWeightDistance(1) << " " << samanet->getLayerWeightDistance(2) << " " << samanet->getWeightDistance() << "\n";
+  for (int i = 0; i <numLayers; i++){
+    weightDistancesfs << samanet->getLayerWeightDistance(i) << " ";
+  }
+  weightDistancesfs << samanet->getWeightDistance() << "\n";
+
   float coeff[4] = {1,2,3,4};
   float outSmall = samanet->getOutput(0);
   float outMedium = samanet->getOutput(1);
@@ -148,6 +151,3 @@ float run_samanet(cv::Mat &statFrame, std::vector<float> &predictorDeltas, float
   float resultNN = (coeff[0]*outSmall) + (coeff[1]*outMedium) + (coeff[2]*outLarge) + (coeff[3]*outExtraLarge);
   return resultNN;
 }
-
-
-

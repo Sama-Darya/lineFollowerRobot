@@ -1,4 +1,3 @@
-
 #include "opencv2/opencv.hpp"
 
 #include <boost/circular_buffer.hpp>
@@ -31,7 +30,7 @@ using namespace cv;
 
 
 Extern::Extern(){
-	
+
 }
 int samplingFreq = 30; // 30Hz is the sampling frequency
 int figureLength = 5; //seconds
@@ -41,36 +40,38 @@ boost::circular_buffer<float> prevErrors(samplingFreq * figureLength);
 boost::circular_buffer<float> sensor0(samplingFreq * figureLength);
 boost::circular_buffer<float> sensor1(samplingFreq * figureLength);
 boost::circular_buffer<float> sensor2(samplingFreq * figureLength);
-boost::circular_buffer<float> sensor3(samplingFreq * figureLength); 
-boost::circular_buffer<float> sensor4(samplingFreq * figureLength); 
-boost::circular_buffer<float> sensor5(samplingFreq * figureLength); 
-boost::circular_buffer<float> sensor6(samplingFreq * figureLength); 
+boost::circular_buffer<float> sensor3(samplingFreq * figureLength);
+boost::circular_buffer<float> sensor4(samplingFreq * figureLength);
+boost::circular_buffer<float> sensor5(samplingFreq * figureLength);
+boost::circular_buffer<float> sensor6(samplingFreq * figureLength);
 boost::circular_buffer<float> sensor7(samplingFreq * figureLength);
 
 std::ofstream datafs("data.csv");
-    
+
 double errorMult = 3;
 double nnMult = 0;
+double nnMultScale = 0;
 
 int Extern::onStepCompleted(cv::Mat &statFrame, float deltaSensorData, std::vector<float> &predictorDeltas) {
   prevErrors.push_back(deltaSensorData); //puts the errors in a buffer for plotting
   float errorGain = 1;
   float error = errorGain * deltaSensorData;
   cvui::text(statFrame, 10, 320, "Sensor Error Multiplier: ");
-  cvui::trackbar(statFrame, 180, 300, 400, &errorMult, (double)0.0, (double)10.0, 1, "%.2Lf", 0, 0.05);
+  cvui::trackbar(statFrame, 180, 250, 400, &errorMult, (double)0.0, (double)10.0, 1, "%.2Lf", 0, 0.05);
   cvui::text(statFrame, 10, 370, "Net Output Multiplier: ");
-  cvui::trackbar(statFrame, 180, 350, 400, &nnMult, (double)0.0, (double)2.0, 1, "%.2Lf", 0, 0.05);
+  cvui::trackbar(statFrame, 180, 300, 400, &nnMult, (double)0.0, (double)2.0, 1, "%.2Lf", 0, 0.05);
+	cvui::trackbar(statFrame, 180, 350, 400, &nnMultScale, (double)0.0, (double)1000, 1, "%.2Lf", 0, 0.05);
   float result = run_samanet(statFrame, predictorDeltas, error); //does one learning iteration, why divide by 5?
   {
     std::vector<double> error_list(prevErrors.begin(), prevErrors.end());
     cvui::sparkline(statFrame, error_list, 10, 50, 580, 200, 0x000000);
     float elapsed_s = std::chrono::duration_cast<std::chrono::milliseconds>(clk::now() - start_time) .count() / 1000.f;
     float chart_start_t = prevErrors.full() ? elapsed_s - 60 : 0.f;
-    cvui::printf(statFrame, 10, 250, "%.2fs", chart_start_t);
-    cvui::printf(statFrame, 540, 250, "%.2fs", elapsed_s);
+    //cvui::printf(statFrame, 10, 250, "%.2fs", chart_start_t);
+    //cvui::printf(statFrame, 540, 250, "%.2fs", elapsed_s);
   }
   float reflex = error * errorMult;
-  float learning = result * nnMult * 1;
+  float learning = result * nnMult * nnMultScale;
   cvui::text(statFrame, 220, 10, "Net out:");
   cvui::printf(statFrame, 300, 10, "%+.4lf (%+.4lf)", result, learning);
   cvui::text(statFrame, 220, 30, "Error:");
@@ -80,10 +81,12 @@ int Extern::onStepCompleted(cv::Mat &statFrame, float deltaSensorData, std::vect
   using namespace std::chrono;
   milliseconds ms = duration_cast<milliseconds>(system_clock::now().time_since_epoch());
 
-  datafs << deltaSensorData << " "   // error from error units
-         << reflex << " "            // reflex
-         << learning << " "            // net output
-         << errorSpeed << "\n"; // final differential output
+  datafs << deltaSensorData << " "
+         << error << " "
+         << reflex << " "
+         << result << " "
+         << learning << " "
+         << errorSpeed << "\n";
 
   return (int)errorSpeed;
 }
@@ -116,7 +119,7 @@ float Extern::calcError(cv::Mat &statFrame, vector<char> &sensorCHAR){
     float m [8+1] = {0,0,0,0,0,0,0,0,0};
     char colorName[8] = {'R', 'O', 'Y', 'G', 'B', 'V', 'P', 'W'}; // Red,Orange,Yellow,Green,Blue,Violet,Pink,White
     const int colorCode[8] = {0xff0000, 0xff9900, 0xffff00, 0x00ff00, 0x00ffff, 0x9900ff, 0xff00ff, 0xffffff};
-    
+
     for (int i = 0; i < numSensors; i++){
       int remainIndex = (startIndex + i) % (numSensors+1);
       sensorVAL[i] = sensorINT[remainIndex];
@@ -129,15 +132,15 @@ float Extern::calcError(cv::Mat &statFrame, vector<char> &sensorCHAR){
       cvui::printf(statFrame, 10 + 75 * i , 265, 0.4, 0x000000, "%d", (int)threshBlack[i]);
       cvui::printf(statFrame, 10 + 75 * i , 275, 0.4, colorCode[i], "%d", (int)sensorINT[remainIndex]);
       cvui::printf(statFrame, 10 + 75 * i , 285, 0.4, 0xffffff, "%d", (int)threshWhite[i]);
-      
-      cout << colorName[i] << " Bcal: " << (int)calibBlack[i] << " " << (int)threshBlack[i] 
-            << " raw: " << (int)sensorINT[remainIndex] 
-            << " Wcal: " << (int)threshWhite[i] << " " << (int)calibWhite[i] 
+
+      cout << colorName[i] << " Bcal: " << (int)calibBlack[i] << " " << (int)threshBlack[i]
+            << " raw: " << (int)sensorINT[remainIndex]
+            << " Wcal: " << (int)threshWhite[i] << " " << (int)calibWhite[i]
             << " cal: " << (int)sensorVAL[i] << endl;
             */
     }
     //cout << " ------------------------------- "<< endl;
-    
+
     sensorVAL[0] = lpf0.update(sensorVAL[0]);
     sensorVAL[1] = lpf1.update(sensorVAL[1]);
     sensorVAL[2] = lpf2.update(sensorVAL[2]);
@@ -146,7 +149,7 @@ float Extern::calcError(cv::Mat &statFrame, vector<char> &sensorCHAR){
     sensorVAL[5] = lpf5.update(sensorVAL[5]);
     sensorVAL[6] = lpf6.update(sensorVAL[6]);
     sensorVAL[7] = lpf7.update(sensorVAL[7]);
-    
+
     float errorWeights[numSensors/2] = {6,4,2,1};
     float error = 0;
     for (int i = 0 ; i < (numSensors/2) ; i++){
@@ -154,57 +157,57 @@ float Extern::calcError(cv::Mat &statFrame, vector<char> &sensorCHAR){
     }
 
     //plot the sensor values:
-    float minVal = 90; 
+    float minVal = 90;
     float maxVal = 210;
-    
+
     sensor0.push_back(sensorVAL[0]); //puts the errors in a buffer for plotting
     sensor0[0] = minVal;
     sensor0[1] = maxVal;
     std::vector<double> sensor_list0(sensor0.begin(), sensor0.end());
     cvui::sparkline(statFrame, sensor_list0, 10, 50, 580, 200, 0xff0000);
-    
+
     sensor1.push_back(sensorVAL[1]); //puts the errors in a buffer for plotting
     sensor1[0] = minVal;
     sensor1[1] = maxVal;
     std::vector<double> sensor_list1(sensor1.begin(), sensor1.end());
     cvui::sparkline(statFrame, sensor_list1, 10, 50, 580, 200, 0xff9900);
-    
+
     sensor2.push_back(sensorVAL[2]); //puts the errors in a buffer for plotting
     sensor2[0] = minVal;
     sensor2[1] = maxVal;
     std::vector<double> sensor_list2(sensor2.begin(), sensor2.end());
-    cvui::sparkline(statFrame, sensor_list2, 10, 50, 580, 200, 0xffff00); 
-    
+    cvui::sparkline(statFrame, sensor_list2, 10, 50, 580, 200, 0xffff00);
+
     sensor3.push_back(sensorVAL[3]); //puts the errors in a buffer for plotting
     sensor3[0] = minVal;
     sensor3[1] = maxVal;
     std::vector<double> sensor_list3(sensor3.begin(), sensor3.end());
     cvui::sparkline(statFrame, sensor_list3, 10, 50, 580, 200, 0x00ff00);
-    
+
     sensor4.push_back(sensorVAL[4]); //puts the errors in a buffer for plotting
     sensor4[0] = minVal;
     sensor4[1] = maxVal;
     std::vector<double> sensor_list4(sensor4.begin(), sensor4.end());
     cvui::sparkline(statFrame, sensor_list4, 10, 50, 580, 200, 0x00ffff);
-    
+
     sensor5.push_back(sensorVAL[5]); //puts the errors in a buffer for plotting
     sensor5[0] = minVal;
     sensor5[1] = maxVal;
     std::vector<double> sensor_list5(sensor5.begin(), sensor5.end());
     cvui::sparkline(statFrame, sensor_list5, 10, 50, 580, 200, 0x9900ff);
-    
+
     sensor6.push_back(sensorVAL[6]); //puts the errors in a buffer for plotting
     sensor6[0] = minVal;
     sensor6[1] = maxVal;
     std::vector<double> sensor_list6(sensor6.begin(), sensor6.end());
     cvui::sparkline(statFrame, sensor_list6, 10, 50, 580, 200, 0xff00ff);
-    
+
     sensor7.push_back(sensorVAL[7]); //puts the errors in a buffer for plotting
     sensor7[0] = minVal;
     sensor7[1] = maxVal;
     std::vector<double> sensor_list7(sensor7.begin(), sensor7.end());
     cvui::sparkline(statFrame, sensor_list7, 10, 50, 580, 200, 0xffffff);
-    
+
     return (error) / (mapWhite - mapBlack);
 }
 
@@ -230,9 +233,9 @@ void Extern::calcPredictors(Mat &frame, vector<float> &predictorDeltaMeans){
 	cvtColor(frame, edges, COLOR_BGR2GRAY);
     rectangle(edges, area, Scalar(122, 144, 255));
     predictorDeltaMeans.clear();
-    	
+
 	int areaMiddleLine = area.width / 2 + area.x;
-    
+
     double predThreshB[nPredictorRows] = {30,30,30,30,40,50,60,70};
     double predThreshW[nPredictorRows] = {100,100,100,100,110,120,130,140};
 	for (int k = 0; k < nPredictorRows; ++k) {
@@ -266,5 +269,3 @@ void Extern::calcPredictors(Mat &frame, vector<float> &predictorDeltaMeans){
     line(frame, {areaMiddleLine, 0}, {areaMiddleLine, frame.rows}, Scalar(50, 50, 255));
     imshow("robot view", frame);
 }
-
-

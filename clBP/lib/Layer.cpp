@@ -68,7 +68,11 @@ void Layer::setError(float _leadError){
 }
 
 void Layer::propError(int _neuronIndex, float _nextSum){
+
     neurons[_neuronIndex]->propError(_nextSum);
+    if (_neuronIndex == 0){
+      cout << "Neuron error is : " << neurons[_neuronIndex]->getError() << endl;
+    }
 }
 
 float Layer::getError(int _neuronIndex){

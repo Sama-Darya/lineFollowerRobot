@@ -35,4 +35,5 @@ private:
     Layer **layers = 0;
     float learningRate = 0;
     int nNeurons;
+    float theLeadError = 0;
 };
