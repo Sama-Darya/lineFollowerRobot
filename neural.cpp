@@ -64,12 +64,19 @@ static void initialize_filters(int numInputs, float sampleRate) {
 }
 
 std::unique_ptr<Net> samanet;
-const int numLayers = 7;
+const int numLayers = 21;
 
 void initialize_samanet(int numInputLayers, float sampleRate) {
   numInputLayers *= 5; // 5 is the number of filters
-  int nNeurons[numLayers] = {5, 5, 5, 5, 5, 5, 4};
-  samanet = std::make_unique<Net>(numLayers, nNeurons, numInputLayers);
+  int numNeurons[numLayers]= {};
+  int firstLayer = 10;
+  int decrementLayer = 0;
+  for (int i=0; i < numLayers - 1; i++){
+    numNeurons[i] = {firstLayer - i * decrementLayer};
+  }
+  numNeurons[numLayers - 1] = 4; //output layer
+
+  samanet = std::make_unique<Net>(numLayers, numNeurons, numInputLayers);
   samanet->initNetwork(Neuron::W_RANDOM, Neuron::B_NONE, Neuron::Act_Sigmoid);
   samanet->setLearningRate(0.01);
   initialize_filters(numInputLayers, sampleRate);
@@ -148,6 +155,7 @@ float run_samanet(cv::Mat &statFrame, std::vector<float> &predictorDeltas, float
   float outMedium = samanet->getOutput(1);
   float outLarge = samanet->getOutput(2);
   float outExtraLarge = samanet->getOutput(3);
+
   float resultNN = (coeff[0]*outSmall) + (coeff[1]*outMedium) + (coeff[2]*outLarge) + (coeff[3]*outExtraLarge);
   return resultNN;
 }

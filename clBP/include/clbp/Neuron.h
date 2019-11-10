@@ -54,6 +54,8 @@ private:
     float learningRate = 0;
     float sum = 0;
     float weightSum = 0;
+    float maxWeight = 1;
+    float minWeight = 1;
     float weightChange=0;
     float weightsDifference = 0;
     int actMet = 0;

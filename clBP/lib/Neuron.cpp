@@ -62,6 +62,8 @@ void Neuron::initNeuron(weightInitMethod _wim, biasInitMethod _bim, Neuron::actM
         weightSum = 0;
           for (int i=0; i<nInputs; i++){
               weightSum += weights[i];
+              maxWeight = max(maxWeight, weights[i]);
+              minWeight = min (minWeight, weights[i]);
           }
     }
     switch (_bim){
@@ -113,7 +115,7 @@ float Neuron::doActivationPrime(float _input){
     float result = 0;
     switch(actMet){
         case 0:
-            result = (doActivation(_input) + 0.5) * (1.5 - doActivation(_input)); //exp(-_input) / pow((exp(-_input) + 1),2);
+            result = ((doActivation(_input) + 0.5) * (1.5 - doActivation(_input))); //exp(-_input) / pow((exp(-_input) + 1),2);
             break;
         case 1:
             result = 1 - pow (tanh(_input), 2);
@@ -135,8 +137,8 @@ void Neuron::calcOutput(){
         sum += inputs[i] * weights[i];
     }
     sum += bias;
-    sum = (sum * 1) / weightSum;
-    //cout << "Neuron: " << sum <<  "  ............   " << weightSum << endl;
+    sum = sum;
+    //cout << "Neuron: " << maxWeight <<  "  ............   " << minWeight << endl;
     assert(std::isfinite(sum));
     output = doActivation(sum);
     assert(std::isfinite(output));
@@ -150,16 +152,23 @@ void Neuron::setError(float _leadError){
 
 void Neuron::propError(float _nextSum){
     error = _nextSum * doActivationPrime(sum);
-    assert(std::isfinite(error));
+    assert(std::isfinite(_nextSum));
 
 }
 
 void Neuron::updateWeights(){
   weightSum = 0;
+  maxWeight = 0;
+  minWeight = 0;
     for (int i=0; i<nInputs; i++){
         weights[i] += learningRate * (error * inputs[i]);
-        weightSum += abs(weights[i]);
+        weightSum += (weights[i]);
+        maxWeight = max (maxWeight,weights[i]);
+        minWeight = min (maxWeight,weights[i]);
     }
+    // for (int i=0; i<nInputs; i++){
+    //   weights[i] = weights[i] / (maxWeight + minWeight);
+    // }
 }
 
 float Neuron::getWeightChange(){

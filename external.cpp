@@ -141,14 +141,14 @@ float Extern::calcError(cv::Mat &statFrame, vector<char> &sensorCHAR){
     }
     //cout << " ------------------------------- "<< endl;
 
-    sensorVAL[0] = lpf0.update(sensorVAL[0]);
-    sensorVAL[1] = lpf1.update(sensorVAL[1]);
-    sensorVAL[2] = lpf2.update(sensorVAL[2]);
-    sensorVAL[3] = lpf3.update(sensorVAL[3]);
-    sensorVAL[4] = lpf4.update(sensorVAL[4]);
-    sensorVAL[5] = lpf5.update(sensorVAL[5]);
-    sensorVAL[6] = lpf6.update(sensorVAL[6]);
-    sensorVAL[7] = lpf7.update(sensorVAL[7]);
+    // sensorVAL[0] = lpf0.update(sensorVAL[0]);
+    // sensorVAL[1] = lpf1.update(sensorVAL[1]);
+    // sensorVAL[2] = lpf2.update(sensorVAL[2]);
+    // sensorVAL[3] = lpf3.update(sensorVAL[3]);
+    // sensorVAL[4] = lpf4.update(sensorVAL[4]);
+    // sensorVAL[5] = lpf5.update(sensorVAL[5]);
+    // sensorVAL[6] = lpf6.update(sensorVAL[6]);
+    // sensorVAL[7] = lpf7.update(sensorVAL[7]);
 
     float errorWeights[numSensors/2] = {6,4,2,1};
     float error = 0;

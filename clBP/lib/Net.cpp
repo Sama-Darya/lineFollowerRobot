@@ -101,16 +101,18 @@ void Net::propError(){
                 tempError = layers[i]->getError(j);
                 tempWeight = layers[i]->getWeights(j,k);
                 sum += tempError * tempWeight;
-                weightSumer += abs(tempWeight);
+                weightSumer += fabs(tempWeight);
                 weightCounter += 1;
+                //cout << "counter is: " << weightCounter << endl;
             }
             assert(std::isfinite(sum));
             assert(std::isfinite(weightSumer));
             assert(std::isfinite(weightCounter));
-            normSum = (sum * 1) / weightSumer;
+            //normSum = (sum / weightCounter) / weightSumer;
+            //cout << "normSum : " << normSum << endl;
             assert(std::isfinite(normSum));
             //cout << " Net: " << sum <<  "  ............   " <<  weightSumer << endl;
-            layers[i-1]->propError(k, normSum);
+            layers[i-1]->propError(k, sum);
           }
     }
 }
