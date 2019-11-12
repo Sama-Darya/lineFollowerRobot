@@ -52,6 +52,7 @@ int main(int, char **) {
     printf("The selected video capture device is not available.\n");
     return -1;
   }
+  
 
     std::vector<float> predictorDeltaMeans;
     predictorDeltaMeans.reserve(nPredictors);

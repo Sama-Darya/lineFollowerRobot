@@ -7,6 +7,7 @@
 using namespace std;
 
 Net::Net(int _nLayers, int* _nNeurons, int _nInputs)
+
 {
     nLayers = _nLayers; //no. of layers including inputs and ouputs layers
     layers= new Layer*[nLayers];

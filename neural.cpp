@@ -34,6 +34,7 @@ static void initialize_filters(int numInputs, float sampleRate) {
     predVector4[i].rresize(delayFactor[j]+1);
     predVector5[i].rresize(delayFactor[j]+3);
   }
+  
 
   bandpassFilters.resize(numInputs);
   double fs = 1;

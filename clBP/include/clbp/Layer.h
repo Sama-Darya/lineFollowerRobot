@@ -4,6 +4,7 @@
 class Layer {
 public:
     Layer(int _nNeurons, int _nInputs);
+    
     ~Layer();
 
     void setInputs(const float *_inputs); // only for the first layer

@@ -155,6 +155,7 @@ float Extern::calcError(cv::Mat &statFrame, vector<char> &sensorCHAR){
     for (int i = 0 ; i < (numSensors/2) ; i++){
        error += (errorWeights[i]) * (sensorVAL[i] - sensorVAL[numSensors -1 -i]);
     }
+    
 
     //plot the sensor values:
     float minVal = 90;

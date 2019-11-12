@@ -5,6 +5,7 @@
 class Net {
 public:
     Net(int _nLayers, int *_nNeurons, int _nInputs);
+    
     ~Net();
     Layer *getLayer(int _layerIndex);
     void initNetwork(Neuron::weightInitMethod _wim, Neuron::biasInitMethod _bim, Neuron::actMethod _am);

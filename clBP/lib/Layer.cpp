@@ -4,6 +4,7 @@
 #include <fstream>
 
 Layer::Layer(int _nNeurons, int _nInputs)
+
 {
     nNeurons = _nNeurons; // number of neurons in this layer
     nInputs = _nInputs; // number of inputs to each neuron

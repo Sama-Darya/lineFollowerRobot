@@ -17,6 +17,7 @@ using namespace cv;
 using namespace std;
 
 class Extern {
+	
 	public:
 	Extern();
 	

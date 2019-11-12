@@ -65,6 +65,7 @@ void Neuron::initNeuron(weightInitMethod _wim, biasInitMethod _bim, Neuron::actM
               maxWeight = max(maxWeight, weights[i]);
               minWeight = min (minWeight, weights[i]);
           }
+          
     }
     switch (_bim){
         case B_NONE:
