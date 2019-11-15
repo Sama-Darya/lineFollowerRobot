@@ -65,7 +65,7 @@ void Neuron::initNeuron(weightInitMethod _wim, biasInitMethod _bim, Neuron::actM
               maxWeight = max(maxWeight, weights[i]);
               minWeight = min (minWeight, weights[i]);
           }
-          
+
     }
     switch (_bim){
         case B_NONE:
@@ -98,25 +98,26 @@ float Neuron::getSumOutput(){
 }
 
 float Neuron::doActivation(float _sum){
+  float thisoutput = 0;
     switch(actMet){
         case 0:
-            output= (1/(1+(exp(-_sum)))) - 0.5;
+            thisoutput = (1/(1+(exp(-_sum)))) - 0.5;
             break;
         case 1:
-            output = tanh(_sum) * 2;
+            thisoutput = tanh(_sum) * 2;
             break;
         case 2:
-            output = _sum;
+            thisoutput = _sum;
             break;
     }
-    return (output);
+    return (thisoutput);
 }
 
 float Neuron::doActivationPrime(float _input){
     float result = 0;
     switch(actMet){
         case 0:
-            result = ((doActivation(_input) + 0.5) * (1.5 - doActivation(_input))); //exp(-_input) / pow((exp(-_input) + 1),2);
+            result = 10 * ((doActivation(_input) + 0.5) * (1.5 - doActivation(_input))); //exp(-_input) / pow((exp(-_input) + 1),2);
             break;
         case 1:
             result = 1 - pow (tanh(_input), 2);
@@ -138,15 +139,17 @@ void Neuron::calcOutput(){
         sum += inputs[i] * weights[i];
     }
     sum += bias;
-    sum = sum;
+    sum = 20 * ( (sum / nInputs) / weightSum );
+    float sumForOutput = 2 * sum;
     //cout << "Neuron: " << maxWeight <<  "  ............   " << minWeight << endl;
     assert(std::isfinite(sum));
-    output = doActivation(sum);
+    output = doActivation(sumForOutput);
     assert(std::isfinite(output));
 }
 
 void Neuron::setError(float _leadError){
     error = _leadError * doActivationPrime(sum);
+    //cout << error << endl;
     assert(std::isfinite(error));
     /*might take a different format to propError*/
 }
@@ -162,7 +165,7 @@ void Neuron::updateWeights(){
   maxWeight = 0;
   minWeight = 0;
     for (int i=0; i<nInputs; i++){
-        weights[i] += learningRate * (error * inputs[i]);
+        weights[i] += learningRate * (fabs(error) * inputs[i]);
         weightSum += (weights[i]);
         maxWeight = max (maxWeight,weights[i]);
         minWeight = min (maxWeight,weights[i]);

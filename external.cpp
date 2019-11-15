@@ -7,6 +7,7 @@
 #include <fstream>
 #include <iostream>
 #include <string>
+#include <numeric>
 
 #include "neural.h"
 #include "external.h"
@@ -21,9 +22,6 @@
 #include <opencv2/opencv.hpp>
 #include <string>
 #include <vector>
-
-
-
 
 using namespace std;
 using namespace cv;
@@ -46,11 +44,11 @@ boost::circular_buffer<float> sensor5(samplingFreq * figureLength);
 boost::circular_buffer<float> sensor6(samplingFreq * figureLength);
 boost::circular_buffer<float> sensor7(samplingFreq * figureLength);
 
-std::ofstream datafs("data.csv");
+std::ofstream datafs("speedDiffdata.csv");
 
 double errorMult = 3;
 double nnMult = 0;
-double nnMultScale = 0;
+double nnMultScale = 1;
 
 int Extern::onStepCompleted(cv::Mat &statFrame, float deltaSensorData, std::vector<float> &predictorDeltas) {
   prevErrors.push_back(deltaSensorData); //puts the errors in a buffer for plotting
@@ -59,8 +57,10 @@ int Extern::onStepCompleted(cv::Mat &statFrame, float deltaSensorData, std::vect
   cvui::text(statFrame, 10, 320, "Sensor Error Multiplier: ");
   cvui::trackbar(statFrame, 180, 250, 400, &errorMult, (double)0.0, (double)10.0, 1, "%.2Lf", 0, 0.05);
   cvui::text(statFrame, 10, 370, "Net Output Multiplier: ");
-  cvui::trackbar(statFrame, 180, 300, 400, &nnMult, (double)0.0, (double)2.0, 1, "%.2Lf", 0, 0.05);
-	cvui::trackbar(statFrame, 180, 350, 400, &nnMultScale, (double)0.0, (double)1000, 1, "%.2Lf", 0, 0.05);
+  cvui::trackbar(statFrame, 180, 300, 400, &nnMult, (double)0.0, (double)10.0, 1, "%.2Lf", 0, 0.05);
+	cvui::trackbar(statFrame, 180, 350, 400, &nnMultScale, (double)0.0, (double)100, 1, "%.2Lf", 0, 0.05);
+  // cout << "external: error= " << error << endl;
+  assert(std::isfinite(error));
   float result = run_samanet(statFrame, predictorDeltas, error); //does one learning iteration, why divide by 5?
   {
     std::vector<double> error_list(prevErrors.begin(), prevErrors.end());
@@ -103,6 +103,14 @@ LowPassFilter lpf5(cutOff, sampFreq);
 LowPassFilter lpf6(cutOff, sampFreq);
 LowPassFilter lpf7(cutOff, sampFreq);
 
+const int loopLength = 1500;
+boost::circular_buffer<float> aveError(loopLength); // each loop of path is 1500 samples
+boost::circular_buffer<float> integError(loopLength); // each loop of path is 1500 samples
+int checkSucess = 0;
+
+std::ofstream errorSuccessDatafs("errorSuccessData.csv");
+
+
 float Extern::calcError(cv::Mat &statFrame, vector<char> &sensorCHAR){
 	const int numSensors = 8;
 	int startIndex = 8;
@@ -116,7 +124,7 @@ float Extern::calcError(cv::Mat &statFrame, vector<char> &sensorCHAR){
     float sensorVAL[numSensors+1]= {0,0,0,0,0,0,0,0,0};
     float mapBlack = 50; //y1
     float mapWhite = 250; //y2
-    float m [8+1] = {0,0,0,0,0,0,0,0,0};
+    float m [8+1] = {1,1,1,1,1,1,1,1,1};
     char colorName[8] = {'R', 'O', 'Y', 'G', 'B', 'V', 'P', 'W'}; // Red,Orange,Yellow,Green,Blue,Violet,Pink,White
     const int colorCode[8] = {0xff0000, 0xff9900, 0xffff00, 0x00ff00, 0x00ffff, 0x9900ff, 0xff00ff, 0xffffff};
 
@@ -126,36 +134,39 @@ float Extern::calcError(cv::Mat &statFrame, vector<char> &sensorCHAR){
       if (sensorVAL[i] > threshWhite[i] ){calibWhite[i] = sensorVAL[i];}
       if (sensorVAL[i] < threshBlack[i] ){calibBlack[i] = sensorVAL[i];}
       diffCalib[i] = calibWhite[i] - calibBlack[i];
+      assert(std::isfinite(diffCalib[i]));
       m[i] = (mapWhite - mapBlack)/(diffCalib[i]);
       sensorVAL[i] = m[i] * (sensorINT[remainIndex] - calibBlack[i]) + mapBlack;
+      assert(std::isfinite(sensorVAL[i]));
       /*
       cvui::printf(statFrame, 10 + 75 * i , 265, 0.4, 0x000000, "%d", (int)threshBlack[i]);
       cvui::printf(statFrame, 10 + 75 * i , 275, 0.4, colorCode[i], "%d", (int)sensorINT[remainIndex]);
       cvui::printf(statFrame, 10 + 75 * i , 285, 0.4, 0xffffff, "%d", (int)threshWhite[i]);
+      */
+      // cout << colorName[i] << " Bcal: " << (int)calibBlack[i] << " " << (int)threshBlack[i]
+      //       << " raw: " << (int)sensorINT[remainIndex]
+      //       << " Wcal: " << (int)threshWhite[i] << " " << (int)calibWhite[i]
+      //       << " cal: " << (int)sensorVAL[i] << endl;
 
-      cout << colorName[i] << " Bcal: " << (int)calibBlack[i] << " " << (int)threshBlack[i]
-            << " raw: " << (int)sensorINT[remainIndex]
-            << " Wcal: " << (int)threshWhite[i] << " " << (int)calibWhite[i]
-            << " cal: " << (int)sensorVAL[i] << endl;
-            */
     }
     //cout << " ------------------------------- "<< endl;
 
-    // sensorVAL[0] = lpf0.update(sensorVAL[0]);
-    // sensorVAL[1] = lpf1.update(sensorVAL[1]);
-    // sensorVAL[2] = lpf2.update(sensorVAL[2]);
-    // sensorVAL[3] = lpf3.update(sensorVAL[3]);
-    // sensorVAL[4] = lpf4.update(sensorVAL[4]);
-    // sensorVAL[5] = lpf5.update(sensorVAL[5]);
-    // sensorVAL[6] = lpf6.update(sensorVAL[6]);
-    // sensorVAL[7] = lpf7.update(sensorVAL[7]);
+    sensorVAL[0] = lpf0.update(sensorVAL[0]);
+    sensorVAL[1] = lpf1.update(sensorVAL[1]);
+    sensorVAL[2] = lpf2.update(sensorVAL[2]);
+    sensorVAL[3] = lpf3.update(sensorVAL[3]);
+    sensorVAL[4] = lpf4.update(sensorVAL[4]);
+    sensorVAL[5] = lpf5.update(sensorVAL[5]);
+    sensorVAL[6] = lpf6.update(sensorVAL[6]);
+    sensorVAL[7] = lpf7.update(sensorVAL[7]);
 
-    float errorWeights[numSensors/2] = {6,4,2,1};
+    float errorWeights[numSensors/2] = {7,5,3,1};
     float error = 0;
     for (int i = 0 ; i < (numSensors/2) ; i++){
        error += (errorWeights[i]) * (sensorVAL[i] - sensorVAL[numSensors -1 -i]);
     }
-    
+    // cout << "sensor error = " << error << endl;
+    assert(std::isfinite(error));
 
     //plot the sensor values:
     float minVal = 90;
@@ -209,6 +220,27 @@ float Extern::calcError(cv::Mat &statFrame, vector<char> &sensorCHAR){
     std::vector<double> sensor_list7(sensor7.begin(), sensor7.end());
     cvui::sparkline(statFrame, sensor_list7, 10, 50, 580, 200, 0xffffff);
 
+    //average the error over the last N samples:
+    aveError.push_back(error);
+    float sumError = std::accumulate(aveError.begin(), aveError.end(), 0.00);
+    float averageError = sumError/loopLength;
+    float CenteredError = error; // - averageError;
+    //integrate the error over the last N samples:
+    integError.push_back(fabs(CenteredError));
+    float inteSumError = std::accumulate(integError.begin(), integError.end(), 0.00);
+    float integAveError = inteSumError/loopLength;
+
+    errorSuccessDatafs << error << " "
+           << CenteredError << " "
+           << integAveError << "\n";
+
+    checkSucess += 1;
+    if (checkSucess > loopLength && integAveError <= 1){
+      //cout << "success rate: " << integAveError << endl;
+      throw;
+    }
+    // cout << "CenteredError = " << CenteredError << endl;
+    assert(std::isfinite(CenteredError));
     return (error) / (mapWhite - mapBlack);
 }
 

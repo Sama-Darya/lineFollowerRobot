@@ -34,7 +34,7 @@ static void initialize_filters(int numInputs, float sampleRate) {
     predVector4[i].rresize(delayFactor[j]+1);
     predVector5[i].rresize(delayFactor[j]+3);
   }
-  
+
 
   bandpassFilters.resize(numInputs);
   double fs = 1;
@@ -139,6 +139,8 @@ float run_samanet(cv::Mat &statFrame, std::vector<float> &predictorDeltas, float
     firstInputs = 0;
     cout << "DONE THIS" << endl;
   }
+  // cout << "neural: error: " << error << endl;
+  assert(std::isfinite(error));
   samanet->setError(error);
   samanet->propError();
   samanet->updateWeights(); // Learn from previous action
@@ -156,7 +158,8 @@ float run_samanet(cv::Mat &statFrame, std::vector<float> &predictorDeltas, float
   float outMedium = samanet->getOutput(1);
   float outLarge = samanet->getOutput(2);
   float outExtraLarge = samanet->getOutput(3);
+  //cout << "Final Errors " << outSmall << " " << outMedium << " " << outLarge << " " << outExtraLarge << endl;
 
-  float resultNN = (coeff[0]*outSmall) + (coeff[1]*outMedium) + (coeff[2]*outLarge) + (coeff[3]*outExtraLarge);
+  float resultNN = (coeff[0] * outSmall) + (coeff[1] * outMedium) + (coeff[2] * outLarge) + (coeff[3] * outExtraLarge);
   return resultNN;
 }
