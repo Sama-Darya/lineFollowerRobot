@@ -113,6 +113,7 @@ boost::circular_buffer<float> integError(loopLength); // each loop of path is 15
 int checkSucess = 0;
 int consistency = 0;
 int stepCount = 0;
+int successDone = 0;
 
 std::ofstream errorSuccessDatafs("errorSuccessData.csv");
 
@@ -245,16 +246,17 @@ float Extern::calcError(cv::Mat &statFrame, vector<char> &sensorCHAR){
 
     stepCount += 1;
     checkSucess += 1;
-    if (checkSucess > loopLength && fabs(integAveError) < 0.1){
+    if (checkSucess > loopLength && fabs(integAveError) < 0.1 && successDone == 0){
       consistency += 1;
       if (consistency > loopLength){
         cout << "SUCCESS! on Step: " << stepCount << ", with Error Integral of: " << integAveError << endl;
+        successDone = 1;
         //throw;
       }
     }else{consistency = 0;}
     if (stepCount > 6 * loopLength){
         cout << "RUN COMPLETED! on Step: " << stepCount << endl;
-        throw;
+        //throw;
     }
     // cout << "CenteredError = " << CenteredError << endl;
     assert(std::isfinite(CenteredError));
