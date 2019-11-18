@@ -47,21 +47,25 @@ boost::circular_buffer<float> sensor7(samplingFreq * figureLength);
 std::ofstream datafs("speedDiffdata.csv");
 
 double errorMult = 3;
-double nnMult = 0;
-double nnMultScale = 1;
+double nnMult = 10;
+double nnMultScale = 10;
 
 int Extern::onStepCompleted(cv::Mat &statFrame, float deltaSensorData, std::vector<float> &predictorDeltas) {
   prevErrors.push_back(deltaSensorData); //puts the errors in a buffer for plotting
   float errorGain = 1;
   float error = errorGain * deltaSensorData;
-  cvui::text(statFrame, 10, 320, "Sensor Error Multiplier: ");
+  cvui::text(statFrame, 10, 250, "Sensor Error Multiplier: ");
   cvui::trackbar(statFrame, 180, 250, 400, &errorMult, (double)0.0, (double)10.0, 1, "%.2Lf", 0, 0.05);
-  cvui::text(statFrame, 10, 370, "Net Output Multiplier: ");
+  cvui::text(statFrame, 10, 300, "Net Output Multiplier: ");
   cvui::trackbar(statFrame, 180, 300, 400, &nnMult, (double)0.0, (double)10.0, 1, "%.2Lf", 0, 0.05);
-	cvui::trackbar(statFrame, 180, 350, 400, &nnMultScale, (double)0.0, (double)100, 1, "%.2Lf", 0, 0.05);
+	cvui::trackbar(statFrame, 180, 350, 400, &nnMultScale, (double)0.0, (double)20, 1, "%.2Lf", 0, 0.05);
   // cout << "external: error= " << error << endl;
   assert(std::isfinite(error));
-  float result = run_samanet(statFrame, predictorDeltas, error); //does one learning iteration, why divide by 5?
+  float errroForLearning = error;
+  if (nnMult == 0 || nnMultScale == 0){
+    errroForLearning = 0;
+  }
+  float result = run_samanet(statFrame, predictorDeltas, errroForLearning); //does one learning iteration, why divide by 5?
   {
     std::vector<double> error_list(prevErrors.begin(), prevErrors.end());
     cvui::sparkline(statFrame, error_list, 10, 50, 580, 200, 0x000000);
@@ -103,10 +107,12 @@ LowPassFilter lpf5(cutOff, sampFreq);
 LowPassFilter lpf6(cutOff, sampFreq);
 LowPassFilter lpf7(cutOff, sampFreq);
 
-const int loopLength = 1500;
+const int loopLength = 750;
 boost::circular_buffer<float> aveError(loopLength); // each loop of path is 1500 samples
 boost::circular_buffer<float> integError(loopLength); // each loop of path is 1500 samples
 int checkSucess = 0;
+int consistency = 0;
+int stepCount = 0;
 
 std::ofstream errorSuccessDatafs("errorSuccessData.csv");
 
@@ -162,15 +168,16 @@ float Extern::calcError(cv::Mat &statFrame, vector<char> &sensorCHAR){
 
     float errorWeights[numSensors/2] = {7,5,3,1};
     float error = 0;
-    for (int i = 0 ; i < (numSensors/2) ; i++){
+    for (int i = 0 ; i < 2 ; i++){
        error += (errorWeights[i]) * (sensorVAL[i] - sensorVAL[numSensors -1 -i]);
     }
     // cout << "sensor error = " << error << endl;
+    error = error / (mapWhite - mapBlack);
     assert(std::isfinite(error));
 
     //plot the sensor values:
-    float minVal = 90;
-    float maxVal = 210;
+    float minVal = 40;
+    float maxVal = 260;
 
     sensor0.push_back(sensorVAL[0]); //puts the errors in a buffer for plotting
     sensor0[0] = minVal;
@@ -224,24 +231,34 @@ float Extern::calcError(cv::Mat &statFrame, vector<char> &sensorCHAR){
     aveError.push_back(error);
     float sumError = std::accumulate(aveError.begin(), aveError.end(), 0.00);
     float averageError = sumError/loopLength;
-    float CenteredError = error; // - averageError;
+    float CenteredError = error - averageError;
     //integrate the error over the last N samples:
     integError.push_back(fabs(CenteredError));
     float inteSumError = std::accumulate(integError.begin(), integError.end(), 0.00);
     float integAveError = inteSumError/loopLength;
 
+    //cout << error << " " << CenteredError << " " << integAveError << endl;
+
     errorSuccessDatafs << error << " "
            << CenteredError << " "
            << integAveError << "\n";
 
+    stepCount += 1;
     checkSucess += 1;
-    if (checkSucess > loopLength && integAveError <= 1){
-      //cout << "success rate: " << integAveError << endl;
-      throw;
+    if (checkSucess > loopLength && fabs(integAveError) < 0.1){
+      consistency += 1;
+      if (consistency > loopLength){
+        cout << "SUCCESS! on Step: " << stepCount << ", with Error Integral of: " << integAveError << endl;
+        //throw;
+      }
+    }else{consistency = 0;}
+    if (stepCount > 6 * loopLength){
+        cout << "RUN COMPLETED! on Step: " << stepCount << endl;
+        throw;
     }
     // cout << "CenteredError = " << CenteredError << endl;
     assert(std::isfinite(CenteredError));
-    return (error) / (mapWhite - mapBlack);
+    return error;
 }
 
 static constexpr int nPredictorCols = 6;
@@ -255,8 +272,8 @@ int Extern::getNpredictors (){
 void Extern::calcPredictors(Mat &frame, vector<float> &predictorDeltaMeans){
 	// Define the rect area that we want to consider.
     int areaWidth = 600;
-    int areaHeight = 400;
-    int offsetFromTop = 50;
+    int areaHeight = 160;
+    int offsetFromTop = 290;
     // VERTICAL RESOLUTION OF CAMERA SHOULD ADJUST
     int startX = (640 - areaWidth) / 2;
     auto area = Rect{startX, offsetFromTop, areaWidth, areaHeight};
@@ -269,8 +286,8 @@ void Extern::calcPredictors(Mat &frame, vector<float> &predictorDeltaMeans){
 
 	int areaMiddleLine = area.width / 2 + area.x;
 
-    double predThreshB[nPredictorRows] = {30,30,30,30,40,50,60,70};
-    double predThreshW[nPredictorRows] = {100,100,100,100,110,120,130,140};
+    double predThreshB[nPredictorRows] = {60 ,60 ,60 ,60 ,60 ,60 ,60 ,60 };
+    double predThreshW[nPredictorRows] = {130,130,130,130,130,130,130,130};
 	for (int k = 0; k < nPredictorRows; ++k) {
       for (int j = 0; j < nPredictorCols ; ++j) {
          auto lPred =
@@ -285,7 +302,8 @@ void Extern::calcPredictors(Mat &frame, vector<float> &predictorDeltaMeans){
         if (grayMeanR < predThreshB[k]){grayMeanR = predThreshB[k];}
         if (grayMeanL > predThreshW[k]){grayMeanL = predThreshW[k];}
         if (grayMeanR > predThreshW[k]){grayMeanR = predThreshW[k];}
-        auto predValue = (grayMeanL - grayMeanR) / 70;
+        float predScale = j + 1;
+        auto predValue = ((grayMeanL - grayMeanR) / 70) * predScale;
         predictorDeltaMeans.push_back(predValue);
         putText(frame, std::to_string((int)(grayMeanL - grayMeanR)),
                 Point{lPred.x + lPred.width / 2 - 13,

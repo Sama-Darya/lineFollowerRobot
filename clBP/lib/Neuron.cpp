@@ -165,7 +165,7 @@ void Neuron::updateWeights(){
   maxWeight = 0;
   minWeight = 0;
     for (int i=0; i<nInputs; i++){
-        weights[i] += learningRate * (fabs(error) * inputs[i]);
+        weights[i] += learningRate * (error * inputs[i]);
         weightSum += (weights[i]);
         maxWeight = max (maxWeight,weights[i]);
         minWeight = min (maxWeight,weights[i]);

@@ -13,28 +13,26 @@
 
 using namespace std;
 
-
 std::vector<std::array<Bandpass, 5>> bandpassFilters;
-
-boost::circular_buffer<double> predVector1[48];
-boost::circular_buffer<double> predVector2[48];
-boost::circular_buffer<double> predVector3[48];
-boost::circular_buffer<double> predVector4[48];
-boost::circular_buffer<double> predVector5[48];
+const int numPred = 48;
+boost::circular_buffer<double> predVector1[numPred];
+boost::circular_buffer<double> predVector2[numPred];
+boost::circular_buffer<double> predVector3[numPred];
+boost::circular_buffer<double> predVector4[numPred];
+boost::circular_buffer<double> predVector5[numPred];
 
 static void initialize_filters(int numInputs, float sampleRate) {
 
   int nPred = numInputs / 5;
-  int delayFactor[8] = {19,18,17,16,15,13,12,10};
+  int delayFactor[8] = {25,22,20,18,16,14,13,11};
   for (int i = 0; i < nPred; i++){
     int j= (int)(i / 6);
-    predVector1[i].rresize(delayFactor[j]-3);
-    predVector2[i].rresize(delayFactor[j]-1);
-    predVector3[i].rresize(delayFactor[j]+0);
-    predVector4[i].rresize(delayFactor[j]+1);
-    predVector5[i].rresize(delayFactor[j]+3);
+    predVector1[i].rresize(1); //delayFactor[j]-3);
+    predVector2[i].rresize(2); //delayFactor[j]-1);
+    predVector3[i].rresize(3);
+    predVector4[i].rresize(4); //delayFactor[j]+1);
+    predVector5[i].rresize(5); //delayFactor[j]+3);
   }
-
 
   bandpassFilters.resize(numInputs);
   double fs = 1;
@@ -65,21 +63,21 @@ static void initialize_filters(int numInputs, float sampleRate) {
 }
 
 std::unique_ptr<Net> samanet;
-const int numLayers = 21;
+const int numLayers = 22;
 
 void initialize_samanet(int numInputLayers, float sampleRate) {
   numInputLayers *= 5; // 5 is the number of filters
   int numNeurons[numLayers]= {};
-  int firstLayer = 10;
+  int firstLayer = 11;
   int decrementLayer = 0;
   for (int i=0; i < numLayers - 1; i++){
-    numNeurons[i] = {firstLayer - i * decrementLayer};
+    numNeurons[i] = firstLayer - i * decrementLayer;
   }
-  numNeurons[numLayers - 1] = 4; //output layer
+  numNeurons[numLayers - 1] = 3; //output layer
 
   samanet = std::make_unique<Net>(numLayers, numNeurons, numInputLayers);
   samanet->initNetwork(Neuron::W_RANDOM, Neuron::B_NONE, Neuron::Act_Sigmoid);
-  samanet->setLearningRate(0.01);
+  samanet->setLearningRate(0.1);
   initialize_filters(numInputLayers, sampleRate);
 }
 
@@ -157,9 +155,9 @@ float run_samanet(cv::Mat &statFrame, std::vector<float> &predictorDeltas, float
   float outSmall = samanet->getOutput(0);
   float outMedium = samanet->getOutput(1);
   float outLarge = samanet->getOutput(2);
-  float outExtraLarge = samanet->getOutput(3);
+  //float outExtraLarge = samanet->getOutput(3);
   //cout << "Final Errors " << outSmall << " " << outMedium << " " << outLarge << " " << outExtraLarge << endl;
 
-  float resultNN = (coeff[0] * outSmall) + (coeff[1] * outMedium) + (coeff[2] * outLarge) + (coeff[3] * outExtraLarge);
+  float resultNN = (coeff[0] * outSmall) + (coeff[1] * outMedium) + (coeff[2] * outLarge); // + (coeff[3] * outExtraLarge);
   return resultNN;
 }
