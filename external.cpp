@@ -48,7 +48,8 @@ std::ofstream datafs("speedDiffdata.csv");
 
 double errorMult = 3;
 double nnMult = 10;
-double nnMultScale = 10;
+double nnMultScale = 9;
+int ampUp = 0;
 
 int Extern::onStepCompleted(cv::Mat &statFrame, float deltaSensorData, std::vector<float> &predictorDeltas) {
   prevErrors.push_back(deltaSensorData); //puts the errors in a buffer for plotting
@@ -57,7 +58,7 @@ int Extern::onStepCompleted(cv::Mat &statFrame, float deltaSensorData, std::vect
   cvui::text(statFrame, 10, 250, "Sensor Error Multiplier: ");
   cvui::trackbar(statFrame, 180, 250, 400, &errorMult, (double)0.0, (double)10.0, 1, "%.2Lf", 0, 0.05);
   cvui::text(statFrame, 10, 300, "Net Output Multiplier: ");
-  cvui::trackbar(statFrame, 180, 300, 400, &nnMult, (double)0.0, (double)10.0, 1, "%.2Lf", 0, 0.05);
+  cvui::trackbar(statFrame, 180, 300, 400, &nnMult, (double)0.0, (double)20.0, 1, "%.2Lf", 0, 0.05);
 	cvui::trackbar(statFrame, 180, 350, 400, &nnMultScale, (double)0.0, (double)20, 1, "%.2Lf", 0, 0.05);
   // cout << "external: error= " << error << endl;
   assert(std::isfinite(error));
@@ -91,13 +92,19 @@ int Extern::onStepCompleted(cv::Mat &statFrame, float deltaSensorData, std::vect
          << result << " "
          << learning << " "
          << errorSpeed << "\n";
+  ampUp += 1;
+  if (ampUp > 500){
+    nnMultScale += 0.5;
+    errorMult -= 0.1;
+    ampUp = 0;
+  }
 
   return (int)errorSpeed;
 }
 Bandpass sensorFilters[8];
 
 float cutOff = 10;
-float sampFreq = 0.033;
+float sampFreq = 0.09;
 LowPassFilter lpf0(cutOff, sampFreq);
 LowPassFilter lpf1(cutOff, sampFreq);
 LowPassFilter lpf2(cutOff, sampFreq);
@@ -169,7 +176,7 @@ float Extern::calcError(cv::Mat &statFrame, vector<char> &sensorCHAR){
 
     float errorWeights[numSensors/2] = {7,5,3,1};
     float error = 0;
-    for (int i = 0 ; i < 2 ; i++){
+    for (int i = 0 ; i < 3 ; i++){
        error += (errorWeights[i]) * (sensorVAL[i] - sensorVAL[numSensors -1 -i]);
     }
     // cout << "sensor error = " << error << endl;
@@ -254,10 +261,10 @@ float Extern::calcError(cv::Mat &statFrame, vector<char> &sensorCHAR){
         //throw;
       }
     }else{consistency = 0;}
-    if (stepCount > 6 * loopLength){
-        cout << "RUN COMPLETED! on Step: " << stepCount << endl;
-        //throw;
-    }
+    // if (stepCount > 6 * loopLength){
+    //     cout << "RUN COMPLETED! on Step: " << stepCount << endl;
+    //     //throw;
+    // }
     // cout << "CenteredError = " << CenteredError << endl;
     assert(std::isfinite(CenteredError));
     return error;
@@ -274,8 +281,8 @@ int Extern::getNpredictors (){
 void Extern::calcPredictors(Mat &frame, vector<float> &predictorDeltaMeans){
 	// Define the rect area that we want to consider.
     int areaWidth = 600;
-    int areaHeight = 160;
-    int offsetFromTop = 290;
+    int areaHeight = 120;
+    int offsetFromTop = 350;
     // VERTICAL RESOLUTION OF CAMERA SHOULD ADJUST
     int startX = (640 - areaWidth) / 2;
     auto area = Rect{startX, offsetFromTop, areaWidth, areaHeight};
