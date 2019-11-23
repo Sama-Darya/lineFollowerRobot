@@ -21,17 +21,17 @@ boost::circular_buffer<double> predVector3[numPred];
 boost::circular_buffer<double> predVector4[numPred];
 boost::circular_buffer<double> predVector5[numPred];
 
-static void initialize_filters(int numInputs, float sampleRate) {
+static void initialize_filters(int numInputs, double sampleRate) {
 
   int nPred = numInputs / 5;
   int delayFactor[8] = {25,22,20,18,16,14,13,11};
   for (int i = 0; i < nPred; i++){
     int j= (int)(i / 6);
     predVector1[i].rresize(1); //delayFactor[j]-3);
-    predVector2[i].rresize(2); //delayFactor[j]-1);
-    predVector3[i].rresize(3);
-    predVector4[i].rresize(4); //delayFactor[j]+1);
-    predVector5[i].rresize(5); //delayFactor[j]+3);
+    predVector2[i].rresize(7); //delayFactor[j]-1);
+    predVector3[i].rresize(15);
+    predVector4[i].rresize(22); //delayFactor[j]+1);
+    predVector5[i].rresize(30); //delayFactor[j]+3);
   }
 
   bandpassFilters.resize(numInputs);
@@ -63,9 +63,9 @@ static void initialize_filters(int numInputs, float sampleRate) {
 }
 
 std::unique_ptr<Net> samanet;
-const int numLayers = 22;
+const int numLayers = 12;
 
-void initialize_samanet(int numInputLayers, float sampleRate) {
+void initialize_samanet(int numInputLayers, double sampleRate) {
   numInputLayers *= 5; // 5 is the number of filters
   int numNeurons[numLayers]= {};
   int firstLayer = 11;
@@ -77,7 +77,7 @@ void initialize_samanet(int numInputLayers, float sampleRate) {
 
   samanet = std::make_unique<Net>(numLayers, numNeurons, numInputLayers);
   samanet->initNetwork(Neuron::W_RANDOM, Neuron::B_NONE, Neuron::Act_Sigmoid);
-  samanet->setLearningRate(0.001);
+  samanet->setLearningRate(0.01);
   initialize_filters(numInputLayers, sampleRate);
 }
 
@@ -86,18 +86,18 @@ std::ofstream predictor("predictor.csv");
 
 bool firstInputs = 1;
 
-float run_samanet(cv::Mat &statFrame, std::vector<float> &predictorDeltas, float error) {
+double run_samanet(cv::Mat &statFrame, std::vector<double> &predictorDeltas, double error) {
 
   using namespace std::chrono;
   milliseconds ms = duration_cast<milliseconds>(system_clock::now().time_since_epoch());
-  std::vector<float> networkInputs;
+  std::vector<double> networkInputs;
 
   predictor << ms.count();
   networkInputs.reserve(predictorDeltas.size() * 5);
 
   for (int i =0; i < predictorDeltas.size(); i++){
     predictor << " " << error;
-    float sampleValue = predictorDeltas[i];
+    double sampleValue = predictorDeltas[i];
     predictor << " " << sampleValue;
     predVector1[i].push_back(sampleValue);
     predVector2[i].push_back(sampleValue);
@@ -121,7 +121,7 @@ float run_samanet(cv::Mat &statFrame, std::vector<float> &predictorDeltas, float
 /*
   for (int j = 0; j < predictorDeltas.size(); ++j) {
     predictor << " " << error;
-    float sample = predictorDeltas[j];
+    double sample = predictorDeltas[j];
     predictor << " " << sample;
     for (auto &filt : bandpassFilters[j]) {
       auto filtered = filt.filter(sample);
@@ -139,6 +139,7 @@ float run_samanet(cv::Mat &statFrame, std::vector<float> &predictorDeltas, float
   }
   // cout << "neural: error: " << error << endl;
   assert(std::isfinite(error));
+  samanet->setGlobalError(error);
   samanet->setError(error);
   samanet->propError();
   samanet->updateWeights(); // Learn from previous action
@@ -151,13 +152,13 @@ float run_samanet(cv::Mat &statFrame, std::vector<float> &predictorDeltas, float
   }
   weightDistancesfs << samanet->getWeightDistance() << "\n";
 
-  float coeff[4] = {1,2,3,4};
-  float outSmall = samanet->getOutput(0);
-  float outMedium = samanet->getOutput(1);
-  float outLarge = samanet->getOutput(2);
-  //float outExtraLarge = samanet->getOutput(3);
+  double coeff[4] = {2,4,6,8};
+  double outSmall = samanet->getOutput(0);
+  double outMedium = samanet->getOutput(1);
+  double outLarge = samanet->getOutput(2);
+  //double outExtraLarge = samanet->getOutput(3);
   //cout << "Final Errors " << outSmall << " " << outMedium << " " << outLarge << " " << outExtraLarge << endl;
 
-  float resultNN = (coeff[0] * outSmall) + (coeff[1] * outMedium) + (coeff[2] * outLarge); // + (coeff[3] * outExtraLarge);
+  double resultNN = (coeff[0] * outSmall) + (coeff[1] * outMedium) + (coeff[2] * outLarge); // + (coeff[3] * outExtraLarge);
   return resultNN;
 }

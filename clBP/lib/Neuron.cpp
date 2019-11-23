@@ -1,20 +1,28 @@
 #include "clbp/Neuron.h"
 
+#include <assert.h>
 #include <iostream>
 #include <ctgmath>
 #include <cstdlib>
 #include <cstdio>
 #include <cassert>
 #include <fstream>
+#include <iostream>
+#include <math.h>
+#include <fstream>
+#include <iostream>
+#include <string>
+#include <numeric>
+#include <vector>
 
 using namespace std;
 
 Neuron::Neuron(int _nInputs)
 {
     nInputs=_nInputs;
-    weights = new float[nInputs];
-    initialWeights = new float[nInputs];
-    inputs = new float[nInputs];
+    weights = new double[nInputs];
+    initialWeights = new double[nInputs];
+    inputs = new double[nInputs];
 }
 
 Neuron::~Neuron(){
@@ -23,7 +31,7 @@ Neuron::~Neuron(){
     delete [] inputs;
 }
 
-void Neuron::setInput(int _index,  float _value) {
+void Neuron::setInput(int _index,  double _value) {
     /* the seInput function sets one input value at the given index,
      * it has to be implemented in a loop inside the layer class to set
      * all the inputs associated with all the neurons in that layer*/
@@ -33,7 +41,7 @@ void Neuron::setInput(int _index,  float _value) {
     //cout << "Neuron the input is: " << _value << endl;
 }
 
-void Neuron::propInputs(int _index,  float _value){
+void Neuron::propInputs(int _index,  double _value){
     /*works like setInput function expect it only applies
      * to the neurons in the hidden and output layers
      * and not the input layer*/
@@ -51,7 +59,7 @@ void Neuron::initNeuron(weightInitMethod _wim, biasInitMethod _bim, Neuron::actM
                 weights[i]=1;
                 break;
             case W_RANDOM:
-                weights[i]=((float)rand()/(RAND_MAX));
+                weights[i]=((double)rand()/(RAND_MAX));
                 break;
                 //cout << " Neuron: weight is: " << weights[i] << endl;
                 /* rand function generates a random function between
@@ -72,7 +80,7 @@ void Neuron::initNeuron(weightInitMethod _wim, biasInitMethod _bim, Neuron::actM
             bias=0;
             break;
         case B_RANDOM:
-            bias=((float)rand()/RAND_MAX);
+            bias=((double)rand()/RAND_MAX);
             break;
     }
     switch(_am){
@@ -89,16 +97,16 @@ void Neuron::initNeuron(weightInitMethod _wim, biasInitMethod _bim, Neuron::actM
 }
 
 
-float Neuron::getOutput(){
+double Neuron::getOutput(){
     return (output);
 }
 
-float Neuron::getSumOutput(){
+double Neuron::getSumOutput(){
     return (sum);
 }
 
-float Neuron::doActivation(float _sum){
-  float thisoutput = 0;
+double Neuron::doActivation(double _sum){
+  double thisoutput = 0;
     switch(actMet){
         case 0:
             thisoutput = (1/(1+(exp(-_sum)))) - 0.5;
@@ -113,11 +121,11 @@ float Neuron::doActivation(float _sum){
     return (thisoutput);
 }
 
-float Neuron::doActivationPrime(float _input){
-    float result = 0;
+double Neuron::doActivationPrime(double _input){
+    double result = 0;
     switch(actMet){
         case 0:
-            result = 10 * ((doActivation(_input) + 0.5) * (1.5 - doActivation(_input))); //exp(-_input) / pow((exp(-_input) + 1),2);
+            result = 20 * ((doActivation(_input) + 0.5) * (0.5 - doActivation(_input))); //exp(-_input) / pow((exp(-_input) + 1),2);
             break;
         case 1:
             result = 1 - pow (tanh(_input), 2);
@@ -129,7 +137,7 @@ float Neuron::doActivationPrime(float _input){
     return (result);
 }
 
-void Neuron::setLearningRate(float _learningRate){
+void Neuron::setLearningRate(double _learningRate){
     learningRate=_learningRate;
 }
 
@@ -139,22 +147,24 @@ void Neuron::calcOutput(){
         sum += inputs[i] * weights[i];
     }
     sum += bias;
-    sum = 20 * ( (sum / nInputs) / weightSum );
-    float sumForOutput = 2 * sum;
-    //cout << "Neuron: " << maxWeight <<  "  ............   " << minWeight << endl;
+    sum = sum / weightSum;
     assert(std::isfinite(sum));
-    output = doActivation(sumForOutput);
+    output = doActivation(sum);
     assert(std::isfinite(output));
 }
 
-void Neuron::setError(float _leadError){
+void Neuron::setGlobalError(double _globalError){
+  globalError = _globalError;
+}
+
+void Neuron::setError(double _leadError){
     error = _leadError * doActivationPrime(sum);
     //cout << error << endl;
     assert(std::isfinite(error));
     /*might take a different format to propError*/
 }
 
-void Neuron::propError(float _nextSum){
+void Neuron::propError(double _nextSum){
     error = _nextSum * doActivationPrime(sum);
     assert(std::isfinite(_nextSum));
 
@@ -175,7 +185,19 @@ void Neuron::updateWeights(){
     // }
 }
 
-float Neuron::getWeightChange(){
+double Neuron::getMaxWeight(){
+  return maxWeight;
+}
+
+double Neuron::getMinWeight(){
+  return minWeight;
+}
+
+double Neuron::getSumWeight(){
+  return weightSum;
+}
+
+double Neuron::getWeightChange(){
     weightsDifference = 0;
     weightChange = 0;
     for (int i=0; i<nInputs; i++){
@@ -185,25 +207,28 @@ float Neuron::getWeightChange(){
     return (weightChange);
 }
 
-float Neuron::getWeightDistance(){
-    float weightDistance=sqrt(weightChange);
-    return (weightDistance);
+double Neuron::getWeightDistance(){
+    return sqrt(weightChange);
 }
 
-float Neuron::getError(){
+double Neuron::getError(){
     return (error);
+}
+
+double Neuron::getGlobalError(){
+    return (globalError);
 }
 
 int Neuron::getnInputs(){
     return (nInputs);
 }
 
-float Neuron::getWeights(int _inputIndex){
+double Neuron::getWeights(int _inputIndex){
     assert((_inputIndex>=0)&&(_inputIndex<nInputs));
     return (weights[_inputIndex]);
 }
 
-float Neuron::getInitWeights(int _inputIndex){
+double Neuron::getInitWeights(int _inputIndex){
     assert((_inputIndex>=0)&&(_inputIndex<nInputs));
     return (initialWeights[_inputIndex]);
 }

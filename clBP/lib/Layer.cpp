@@ -1,6 +1,23 @@
 #include "clbp/Layer.h"
 #include "clbp/Neuron.h"
 
+#include <stdio.h>
+#include <assert.h>
+#include <iostream>
+#include <ctgmath>
+#include <cstdlib>
+#include <cstdio>
+#include <cassert>
+#include <fstream>
+#include <iostream>
+#include <math.h>
+#include <fstream>
+#include <iostream>
+#include <string>
+#include <numeric>
+#include <vector>
+
+
 #include <fstream>
 
 Layer::Layer(int _nNeurons, int _nInputs)
@@ -29,7 +46,7 @@ Layer::~Layer(){
      * memory allocation created by "new" */
 }
 
-void Layer::setInputs(const float* _inputs){
+void Layer::setInputs(const double* _inputs){
     /*this is only for the first layer*/
     inputs=_inputs;
     for (int j=0; j<nInputs; j++){
@@ -38,7 +55,7 @@ void Layer::setInputs(const float* _inputs){
          * within the scope of this function. this is inside
          * the loop, so that it is set to the first neuron
          * everytime a new value is distributed to neurons */
-        float input= *inputs; //take this input value
+        double input= *inputs; //take this input value
         for (int i=0; i<nNeurons; i++){
             (*neuronsp)->setInput(j,input);
             //set this input value for this neuron
@@ -48,7 +65,7 @@ void Layer::setInputs(const float* _inputs){
     }
 }
 
-void Layer::propInputs(int _index, float _value){
+void Layer::propInputs(int _index, double _value){
     for (int i=0; i<nNeurons; i++){
         neurons[i]->propInputs(_index, _value);
     }
@@ -60,57 +77,65 @@ void Layer::calcOutputs(){
     }
 }
 
+void Layer::setGlobalError(double _globalError){
+  globalError = _globalError;
+  for (int i=0; i<nNeurons; i++){
+      neurons[i]->setGlobalError(globalError);
+  }
+}
 
-void Layer::setError(float _leadError){
+void Layer::setError(double _leadError){
     /* this is only for the final layer */
     for (int i=0; i<nNeurons; i++){
         neurons[i]->setError(_leadError);
     }
 }
 
-void Layer::propError(int _neuronIndex, float _nextSum){
-
+void Layer::propError(int _neuronIndex, double _nextSum){
     neurons[_neuronIndex]->propError(_nextSum);
     if (_neuronIndex == 0){
-      // cout << "error is : " << neurons[_neuronIndex]->getError();
-      // cout << " : " << neurons[_neuronIndex]->getSumOutput();
-      // cout << " : " << neurons[_neuronIndex]->getOutput() << endl;
-
+      cout << " BP>> acc2=Sum(W*E): " << _nextSum;
+      cout << " e=acc*sigmoid'(acc1): " << neurons[_neuronIndex]->getError();
+      cout << " FP>> acc1=Sum(w.in): " << neurons[_neuronIndex]->getSumOutput();
+      cout << " sigmoid(sum): " << neurons[_neuronIndex]->getOutput();
+      cout << " " << endl;
     }
 }
 
-float Layer::getError(int _neuronIndex){
+double Layer::getError(int _neuronIndex){
     return (neurons[_neuronIndex]->getError());
 }
 
-float Layer::getSumOutput(int _neuronIndex){
+double Layer::getGlobalError(int _neuronIndex){
+    return (neurons[_neuronIndex]->getGlobalError());
+}
+
+double Layer::getSumOutput(int _neuronIndex){
     return (neurons[_neuronIndex]->getSumOutput());
 }
 
-float Layer::getWeights(int _neuronIndex, int _weightIndex){
+double Layer::getWeights(int _neuronIndex, int _weightIndex){
     return (neurons[_neuronIndex]->getWeights(_weightIndex));
 }
 
-float Layer::getInitWeight(int _neuronIndex, int _weightIndex){
+double Layer::getInitWeight(int _neuronIndex, int _weightIndex){
     return (neurons[_neuronIndex]->getInitWeights(_weightIndex));
 }
 
-float Layer::getWeightChange(){
+double Layer::getWeightChange(){
     weightChange=0;
     for (int i=0; i<nNeurons; i++){
         weightChange += neurons[i]->getWeightChange();
     }
-
     //cout<< "Layer: WeightChange is: " << weightChange << endl;
     return (weightChange);
 }
 
-float Layer::getWeightDistance(){
-    float weightDistance=sqrt(weightChange);
-    return (weightDistance);
+double Layer::getWeightDistance(){
+    return sqrt(weightChange);
 }
 
-float Layer::getOutput(int _neuronIndex){
+double Layer::getOutput(int _neuronIndex){
     return (neurons[_neuronIndex]->getOutput());
 }
 
@@ -121,7 +146,7 @@ void Layer::initLayer(Neuron::weightInitMethod _wim, Neuron::biasInitMethod _bim
     }
 }
 
-void Layer::setlearningRate(float _learningRate){
+void Layer::setlearningRate(double _learningRate){
     learningRate=_learningRate;
     for (int i=0; i<nNeurons; i++){
         neurons[i]->setLearningRate(learningRate);

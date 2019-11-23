@@ -1,29 +1,49 @@
 #pragma once
+
+
+#include <stdio.h>
+#include <assert.h>
+#include <iostream>
+#include <ctgmath>
+#include <cstdlib>
+#include <cstdio>
+#include <cassert>
+#include <fstream>
+#include <iostream>
+#include <math.h>
+#include <fstream>
+#include <iostream>
+#include <string>
+#include <numeric>
+#include <vector>
+
 #include "Neuron.h"
 
 class Layer {
 public:
     Layer(int _nNeurons, int _nInputs);
-    
+
     ~Layer();
 
-    void setInputs(const float *_inputs); // only for the first layer
+    void setInputs(const double *_inputs); // only for the first layer
     void initLayer(Neuron::weightInitMethod _wim, Neuron::biasInitMethod _bim, Neuron::actMethod _am);
     void calcOutputs();
-    float getOutput(int _neuronIndex);
-    float getSumOutput(int _neuronIndex);
-    void propInputs(int _index, float _value);
+    double getOutput(int _neuronIndex);
+    double getSumOutput(int _neuronIndex);
+    void propInputs(int _index, double _value);
     /*this is for hidden and output layers (not input)*/
     void printLayer();
-    void propError(int _neuronIndex, float _nextSum);
+    void propError(int _neuronIndex, double _nextSum);
     int getnNeurons();
-    void setlearningRate(float _learningRate);
-    float getError(int _neuronIndex);
-    float getWeights(int _neuronIndex, int _weightIndex);
-    float getInitWeight(int _neuronIndex, int _weightIndex);
-    float getWeightChange();
-    float getWeightDistance();
-    void setError(float _leadError);
+    void setlearningRate(double _learningRate);
+    double getError(int _neuronIndex);
+    double getGlobalError(int _neuronIndex);
+    double getWeights(int _neuronIndex, int _weightIndex);
+    double getInitWeight(int _neuronIndex, int _weightIndex);
+    double getWeightChange();
+    double getWeightDistance();
+    void setGlobalError(double _globalError);
+    void setError(double _leadError);
     void updateWeights();
     int saveWeights(int _layerIndex, int _neuronCount);
     void snapWeights(int _layerIndex); // This one just saves the final weights
@@ -34,8 +54,10 @@ public:
 private:
     int nNeurons = 0;
     int nInputs = 0;
-    const float *inputs = 0;
+    const double *inputs = 0;
     Neuron **neurons = 0;
-    float learningRate = 0;
-    float weightChange=0;
+    double learningRate = 0;
+    double weightChange=0;
+    double globalError = 0;
+
 };

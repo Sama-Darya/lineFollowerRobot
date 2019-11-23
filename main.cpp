@@ -52,9 +52,9 @@ int main(int, char **) {
     printf("The selected video capture device is not available.\n");
     return -1;
   }
-  
 
-    std::vector<float> predictorDeltaMeans;
+
+    std::vector<double> predictorDeltaMeans;
     predictorDeltaMeans.reserve(nPredictors);
     std::vector<char> sensorCHAR;
     sensorCHAR.reserve(9);
@@ -69,12 +69,12 @@ int main(int, char **) {
     external->calcPredictors(frame, predictorDeltaMeans);
     // getting the error signal form sensors
     sensorCHAR.clear();
-    char sensorRAW[9]= {'a','a','a','a','a','a','a','a','a'};    
+    char sensorRAW[9]= {'a','a','a','a','a','a','a','a','a'};
     Ret = LS.Read(&sensorRAW, sizeof(sensorRAW));
     for (int i = 0 ; i<9; i++){
       sensorCHAR.push_back(sensorRAW[i]);
     }
-    float sensorError = external->calcError(statFrame, sensorCHAR);
+    double sensorError = external->calcError(statFrame, sensorCHAR);
     if (Ret > 0){
       int speedError = 100 + external->onStepCompleted(statFrame, sensorError, predictorDeltaMeans);
       char speedErrorChar = (char)speedError;
