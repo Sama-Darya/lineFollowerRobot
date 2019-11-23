@@ -32,8 +32,8 @@ class Extern {
 	clk::time_point start_time;
 
 	float calibBlack[8+1]  = {100,110,115,125,   125,120,110,100,0};//x1 Red,Orange,Yellow,Green,Blue,Violet,Pink,White
-	float threshBlack[8+1] = {135,150,145,150,   150,145,150,135,0};
-	float threshWhite[8+1] = {140,155,150,155,   155,150,155,140,1};
+	float threshBlack[8+1] = {135,140,140,150,   150,140,140,135,0};
+	float threshWhite[8+1] = {140,145,145,155,   155,145,145,140,1};
 	float calibWhite[8+1]  = {150,160,160,160,   160,160,160,150,2}; //x2 Red,Orange,Yellow,Green,Blue,Violet,Pink,White
 
 	float diffCalib[8+1]   = {1,1,1,1,           1,1,1,1,1};

@@ -46,15 +46,16 @@ boost::circular_buffer<float> sensor7(samplingFreq * figureLength);
 
 std::ofstream datafs("speedDiffdata.csv");
 
-double errorMult = 3;
-double nnMult = 10;
-double nnMultScale = 9;
+double errorMult = 1;
+double nnMult = 0;
+double nnMultScale = 0;
 int ampUp = 0;
+int startLearning = 0;
 
 int Extern::onStepCompleted(cv::Mat &statFrame, float deltaSensorData, std::vector<float> &predictorDeltas) {
   prevErrors.push_back(deltaSensorData); //puts the errors in a buffer for plotting
-  float errorGain = 1;
-  float error = errorGain * deltaSensorData;
+
+  float error = deltaSensorData;
   cvui::text(statFrame, 10, 250, "Sensor Error Multiplier: ");
   cvui::trackbar(statFrame, 180, 250, 400, &errorMult, (double)0.0, (double)10.0, 1, "%.2Lf", 0, 0.05);
   cvui::text(statFrame, 10, 300, "Net Output Multiplier: ");
@@ -62,10 +63,11 @@ int Extern::onStepCompleted(cv::Mat &statFrame, float deltaSensorData, std::vect
 	cvui::trackbar(statFrame, 180, 350, 400, &nnMultScale, (double)0.0, (double)20, 1, "%.2Lf", 0, 0.05);
   // cout << "external: error= " << error << endl;
   assert(std::isfinite(error));
-  float errroForLearning = error;
-  if (nnMult == 0 || nnMultScale == 0){
-    errroForLearning = 0;
-  }
+  float errorGain = 100;
+  float errroForLearning = errorGain * error;
+  // if (nnMult == 0 || nnMultScale == 0){
+  //   errroForLearning = 0;
+  // }
   float result = run_samanet(statFrame, predictorDeltas, errroForLearning); //does one learning iteration, why divide by 5?
   {
     std::vector<double> error_list(prevErrors.begin(), prevErrors.end());
@@ -92,19 +94,22 @@ int Extern::onStepCompleted(cv::Mat &statFrame, float deltaSensorData, std::vect
          << result << " "
          << learning << " "
          << errorSpeed << "\n";
+
   ampUp += 1;
-  if (ampUp > 500){
-    nnMultScale += 0.5;
-    errorMult -= 0.1;
+  if (ampUp > 750 && startLearning == 0){
+    nnMultScale = 17;
+    nnMult = 10;
+    errorMult = 2;
     ampUp = 0;
+    startLearning = 1;
   }
 
   return (int)errorSpeed;
 }
 Bandpass sensorFilters[8];
 
-float cutOff = 10;
-float sampFreq = 0.09;
+float cutOff = 25;
+float sampFreq = 0.1;
 LowPassFilter lpf0(cutOff, sampFreq);
 LowPassFilter lpf1(cutOff, sampFreq);
 LowPassFilter lpf2(cutOff, sampFreq);
@@ -114,7 +119,7 @@ LowPassFilter lpf5(cutOff, sampFreq);
 LowPassFilter lpf6(cutOff, sampFreq);
 LowPassFilter lpf7(cutOff, sampFreq);
 
-const int loopLength = 750;
+const int loopLength = 500;
 boost::circular_buffer<float> aveError(loopLength); // each loop of path is 1500 samples
 boost::circular_buffer<float> integError(loopLength); // each loop of path is 1500 samples
 int checkSucess = 0;
@@ -123,6 +128,9 @@ int stepCount = 0;
 int successDone = 0;
 
 std::ofstream errorSuccessDatafs("errorSuccessData.csv");
+
+int sensorInUse = 4;
+float thresholdInteg = 10;
 
 
 float Extern::calcError(cv::Mat &statFrame, vector<char> &sensorCHAR){
@@ -174,9 +182,12 @@ float Extern::calcError(cv::Mat &statFrame, vector<char> &sensorCHAR){
     sensorVAL[6] = lpf6.update(sensorVAL[6]);
     sensorVAL[7] = lpf7.update(sensorVAL[7]);
 
-    float errorWeights[numSensors/2] = {7,5,3,1};
+    float errorWeights[numSensors/2] = {8,6,4,2};
     float error = 0;
-    for (int i = 0 ; i < 3 ; i++){
+    if (startLearning == 1){
+      sensorInUse = 2;
+    }
+    for (int i = 0 ; i < sensorInUse ; i++){
        error += (errorWeights[i]) * (sensorVAL[i] - sensorVAL[numSensors -1 -i]);
     }
     // cout << "sensor error = " << error << endl;
@@ -253,12 +264,15 @@ float Extern::calcError(cv::Mat &statFrame, vector<char> &sensorCHAR){
 
     stepCount += 1;
     checkSucess += 1;
-    if (checkSucess > loopLength && fabs(integAveError) < 0.1 && successDone == 0){
+    if (checkSucess > loopLength){
+      thresholdInteg = fabs(integAveError) / 5;
+    }
+    if (checkSucess > loopLength && fabs(integAveError) < thresholdInteg && successDone == 0){
       consistency += 1;
       if (consistency > loopLength){
         cout << "SUCCESS! on Step: " << stepCount << ", with Error Integral of: " << integAveError << endl;
         successDone = 1;
-        //throw;
+        throw;
       }
     }else{consistency = 0;}
     // if (stepCount > 6 * loopLength){
@@ -294,9 +308,12 @@ void Extern::calcPredictors(Mat &frame, vector<float> &predictorDeltaMeans){
     predictorDeltaMeans.clear();
 
 	int areaMiddleLine = area.width / 2 + area.x;
-
-    double predThreshB[nPredictorRows] = {60 ,60 ,60 ,60 ,60 ,60 ,60 ,60 };
-    double predThreshW[nPredictorRows] = {130,130,130,130,130,130,130,130};
+  double predThreshW[nPredictorCols][nPredictorRows] = {{170,180,190,200,210,220,220,220},
+                                                        {170,180,190,190,200,210,220,210},
+                                                        {160,170,180,190,190,200,200,200},
+                                                        {150,160,170,180,180,180,190,190},
+                                                        {140,150,150,160,160,170,170,170},
+                                                        {130,130,130,140,140,140,140,140}};
 	for (int k = 0; k < nPredictorRows; ++k) {
       for (int j = 0; j < nPredictorCols ; ++j) {
          auto lPred =
@@ -307,10 +324,10 @@ void Extern::calcPredictors(Mat &frame, vector<float> &predictorDeltaMeans){
                  area.y + k * predictorHeight, predictorWidth, predictorHeight);
         auto grayMeanL = mean(Mat(edges, lPred))[0];
         auto grayMeanR = mean(Mat(edges, rPred))[0];
-        if (grayMeanL < predThreshB[k]){grayMeanL = predThreshB[k];}
-        if (grayMeanR < predThreshB[k]){grayMeanR = predThreshB[k];}
-        if (grayMeanL > predThreshW[k]){grayMeanL = predThreshW[k];}
-        if (grayMeanR > predThreshW[k]){grayMeanR = predThreshW[k];}
+        if (grayMeanL < predThreshW[j][k] - 70){grayMeanL = predThreshW[j][k] - 70;}
+        if (grayMeanR < predThreshW[j][k] - 70){grayMeanR = predThreshW[j][k] - 70;}
+        if (grayMeanL > predThreshW[j][k] - 10){grayMeanL = predThreshW[j][k] - 10;}
+        if (grayMeanR > predThreshW[j][k] - 10){grayMeanR = predThreshW[j][k] - 10;}
         float predScale = j + 1;
         auto predValue = ((grayMeanL - grayMeanR) / 70) * predScale;
         predictorDeltaMeans.push_back(predValue);
