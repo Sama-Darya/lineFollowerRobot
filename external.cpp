@@ -48,7 +48,7 @@ std::ofstream datafs("speedDiffdata.csv");
 
 double errorMult = 2;
 double nnMult = 1;
-int nnMultScale = 9;
+double nnMultScale = 10.4;
 int ampUp = 0;
 int startLearning = 0;
 
@@ -57,10 +57,10 @@ int Extern::onStepCompleted(cv::Mat &statFrame, double deltaSensorData, std::vec
 
   double error = deltaSensorData;
   cvui::text(statFrame, 10, 250, "Sensor Error Multiplier: ");
-  cvui::trackbar(statFrame, 180, 250, 400, &errorMult, (double)0.0, (double)10.0, 1, "%.2Lf", 0, 0.05);
+  cvui::trackbar(statFrame, 180, 250, 400, &errorMult, (double)0.0, (double)10.0, 1, "%.2Lf", 0, 0.5);
   cvui::text(statFrame, 10, 300, "Net Output Multiplier: ");
-  cvui::trackbar(statFrame, 180, 300, 400, &nnMult, (double)0.0, (double)10.0, 1, "%.2Lf", 0, 0.05);
-	cvui::trackbar(statFrame, 180, 350, 400, &nnMultScale, (int)0, (int)20, 1, "%.2Lf", 0, 1);
+  cvui::trackbar(statFrame, 180, 300, 400, &nnMult, (double)0.0, (double)10.0, 1, "%.2Lf", 0, 0.5);
+	cvui::trackbar(statFrame, 180, 350, 400, &nnMultScale, (double)0, (double)20, 1, "%.2Lf", 0, 0.5);
   // cout << "external: error= " << error << endl;
   assert(std::isfinite(error));
   double errorGain = 1;
@@ -133,6 +133,7 @@ std::ofstream successRatef("successTime.csv");
 int sensorInUse = 4;
 double thresholdInteg = 10;
 int getThreshold = 1;
+double maxIntegral = 0;
 
 
 double Extern::calcError(cv::Mat &statFrame, vector<char> &sensorCHAR){
@@ -256,16 +257,18 @@ double Extern::calcError(cv::Mat &statFrame, vector<char> &sensorCHAR){
            << CenteredError << " "
            << integAveError << "\n";
 
+    maxIntegral = max (maxIntegral,fabs(integAveError));
+    thresholdInteg = maxIntegral / 3;
     stepCount += 1;
     checkSucess += 1;
-    if (checkSucess > loopLength && getThreshold == 1){
-      thresholdInteg = fabs(integAveError) / 5;
-      getThreshold = 0;
-    }
+    // if (checkSucess > loopLength && getThreshold == 1){
+    //   thresholdInteg = fabs(integAveError) / 5;
+    //   getThreshold = 0;
+    // }
     if (checkSucess > loopLength && fabs(integAveError) < thresholdInteg && successDone == 0){
       consistency += 1;
       if (consistency > 100){
-        cout << "SUCCESS! on Step: " << stepCount << ", with Error Integral of: " << integAveError << endl;
+        cout << "SUCCESS! on Step: " << stepCount << ", with Error Integral reduction of: " << integAveError / maxIntegral << endl;
         successDone = 1;
         successRatef << stepCount << " " << integAveError << " " << thresholdInteg << "\n";
         //throw;
