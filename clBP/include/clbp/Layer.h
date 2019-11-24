@@ -59,5 +59,6 @@ private:
     double learningRate = 0;
     double weightChange=0;
     double globalError = 0;
+    int printInfo = 1;
 
 };

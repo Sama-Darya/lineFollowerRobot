@@ -129,7 +129,7 @@ void Net::propError(){
             layers[i-1]->propError(k, normSum);
           }
     }
-    cout << "---------------------------------------------------------------------------" << endl;
+    //cout << "---------------------------------------------------------------------------" << endl;
 }
 
 void Net::setGlobalError(double _globalError){
@@ -142,7 +142,7 @@ void Net::setGlobalError(double _globalError){
 void Net::setError(double _leadError){
     /* this is only for the final layer */
     theLeadError = _leadError;
-    cout<< "globalError: " << theLeadError << endl;
+    //cout<< "globalError: " << theLeadError << endl;
     layers[nLayers-1]->setError(theLeadError);
     /* if the leadError was diff. for each output neuron
      * then it would be implemented in a for-loop */
