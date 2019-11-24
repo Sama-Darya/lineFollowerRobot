@@ -48,7 +48,7 @@ std::ofstream datafs("speedDiffdata.csv");
 
 double errorMult = 2;
 double nnMult = 1;
-double nnMultScale = 10.4;
+double nnMultScale = 10.2;
 int ampUp = 0;
 int startLearning = 0;
 
