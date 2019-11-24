@@ -48,7 +48,7 @@ std::ofstream datafs("speedDiffdata.csv");
 
 double errorMult = 2.5;
 double nnMult = 1;
-double nnMultScale = 1;
+double nnMultScale = 0;
 int ampUp = 0;
 int startLearning = 0;
 
@@ -59,13 +59,13 @@ int Extern::onStepCompleted(cv::Mat &statFrame, double deltaSensorData, std::vec
   cvui::text(statFrame, 10, 250, "Sensor Error Multiplier: ");
   cvui::trackbar(statFrame, 180, 250, 400, &errorMult, (double)0.0, (double)10.0, 1, "%.2Lf", 0, 0.05);
   cvui::text(statFrame, 10, 300, "Net Output Multiplier: ");
-  cvui::trackbar(statFrame, 180, 300, 400, &nnMult, (double)0.0, (double)20.0, 1, "%.2Lf", 0, 0.05);
-	cvui::trackbar(statFrame, 180, 350, 400, &nnMultScale, (double)0.0, (double)20, 1, "%.2Lf", 0, 0.05);
+  cvui::trackbar(statFrame, 180, 300, 400, &nnMult, (double)0.0, (double)10.0, 1, "%.2Lf", 0, 0.05);
+	cvui::trackbar(statFrame, 180, 350, 400, &nnMultScale, (double)0.0, (double)10, 1, "%.2Lf", 0, 0.05);
   // cout << "external: error= " << error << endl;
   assert(std::isfinite(error));
   double errorGain = 1;
   double errroForLearning = errorGain * error;
-  if (nnMult == 0 || nnMultScale == 0){
+  if (nnMult == 0){
     errroForLearning = 0;
   }
   double result = run_samanet(statFrame, predictorDeltas, errroForLearning); //does one learning iteration, why divide by 5?
@@ -78,7 +78,7 @@ int Extern::onStepCompleted(cv::Mat &statFrame, double deltaSensorData, std::vec
     //cvui::printf(statFrame, 540, 250, "%.2fs", elapsed_s);
   }
   double reflex = error * errorMult;
-  double learning = result * nnMult * nnMultScale * 10000000;
+  double learning = result * nnMult * pow(10,nnMultScale);
   cvui::text(statFrame, 220, 10, "Net out:");
   cvui::printf(statFrame, 300, 10, "%+.4lf (%+.4lf)", result, learning);
   cvui::text(statFrame, 220, 30, "Error:");
@@ -97,7 +97,6 @@ int Extern::onStepCompleted(cv::Mat &statFrame, double deltaSensorData, std::vec
 
   // ampUp += 1;
   // if (ampUp > 750 && startLearning == 0){
-  //   nnMultScale = 17;
   //   nnMult = 10;
   //   errorMult = 2;
   //   ampUp = 0;

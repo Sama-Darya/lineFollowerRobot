@@ -147,7 +147,7 @@ void Neuron::calcOutput(){
         sum += inputs[i] * weights[i];
     }
     sum += bias;
-    sum = sum / weightSum;
+    sum = sum / nInputs;
     assert(std::isfinite(sum));
     output = doActivation(sum);
     assert(std::isfinite(output));
