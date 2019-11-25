@@ -95,14 +95,6 @@ int Extern::onStepCompleted(cv::Mat &statFrame, double deltaSensorData, std::vec
          << learning << " "
          << errorSpeed << "\n";
 
-  // ampUp += 1;
-  // if (ampUp > 750 && startLearning == 0){
-  //   nnMult = 10;
-  //   errorMult = 2;
-  //   ampUp = 0;
-  //   startLearning = 1;
-  // }
-
   return (int)errorSpeed;
 }
 Bandpass sensorFilters[8];
@@ -131,7 +123,7 @@ std::ofstream successRatef("successTime.csv");
 
 
 int sensorInUse = 4;
-double thresholdInteg = 10;
+double thresholdInteg = 10.2;
 int getThreshold = 1;
 double maxIntegral = 0;
 int setFirstEncounter = 1;
@@ -184,9 +176,6 @@ double Extern::calcError(cv::Mat &statFrame, vector<char> &sensorCHAR){
 
     double errorWeights[numSensors/2] = {7,5,3,1};
     double error = 0;
-    // if (startLearning == 1){
-    //   sensorInUse = 4;
-    // }
     for (int i = 0 ; i < 2 ; i++){
        error += (errorWeights[i]) * (sensorVAL[i] - sensorVAL[numSensors -1 -i]);
     }
@@ -266,10 +255,7 @@ double Extern::calcError(cv::Mat &statFrame, vector<char> &sensorCHAR){
     thresholdInteg = maxIntegral / 3;
     stepCount += 1;
     checkSucess += 1;
-    // if (checkSucess > loopLength && getThreshold == 1){
-    //   thresholdInteg = fabs(integAveError) / 5;
-    //   getThreshold = 0;
-    // }
+
     if (checkSucess > loopLength && fabs(integAveError) < thresholdInteg && successDone == 0){
       consistency += 1;
       if (consistency > 100){
@@ -279,11 +265,7 @@ double Extern::calcError(cv::Mat &statFrame, vector<char> &sensorCHAR){
         //throw;
       }
     }else{consistency = 0;}
-    // if (stepCount > 6 * loopLength){
-    //     cout << "RUN COMPLETED! on Step: " << stepCount << endl;
-    //     //throw;
-    // }
-    // cout << "CenteredError = " << CenteredError << endl;
+
     assert(std::isfinite(CenteredError));
     return error;
 }
