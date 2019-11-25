@@ -48,7 +48,7 @@ std::ofstream datafs("speedDiffdata.csv");
 
 double errorMult = 2;
 double nnMult = 1;
-double nnMultScale = 10.2;
+double nnMultScale = 9.8;
 int ampUp = 0;
 int startLearning = 0;
 
@@ -134,6 +134,8 @@ int sensorInUse = 4;
 double thresholdInteg = 10;
 int getThreshold = 1;
 double maxIntegral = 0;
+int setFirstEncounter = 1;
+int firstEncounter = 0 ;
 
 
 double Extern::calcError(cv::Mat &statFrame, vector<char> &sensorCHAR){
@@ -256,7 +258,10 @@ double Extern::calcError(cv::Mat &statFrame, vector<char> &sensorCHAR){
     errorSuccessDatafs << error << " "
            << CenteredError << " "
            << integAveError << "\n";
-
+    if (fabs(error) > 0.01 && setFirstEncounter == 1){
+      firstEncounter = stepCount;
+      setFirstEncounter =0;
+    }
     maxIntegral = max (maxIntegral,fabs(integAveError));
     thresholdInteg = maxIntegral / 3;
     stepCount += 1;
@@ -268,9 +273,9 @@ double Extern::calcError(cv::Mat &statFrame, vector<char> &sensorCHAR){
     if (checkSucess > loopLength && fabs(integAveError) < thresholdInteg && successDone == 0){
       consistency += 1;
       if (consistency > 100){
-        cout << "SUCCESS! on Step: " << stepCount << ", with Error Integral reduction of: " << integAveError / maxIntegral << endl;
+        cout << "SUCCESS! on Step: " << stepCount - firstEncounter << ", with Error Integral reduction of: " << integAveError << endl;
         successDone = 1;
-        successRatef << stepCount << " " << integAveError << " " << thresholdInteg << "\n";
+        successRatef << firstEncounter << " " << stepCount << " " << integAveError << " " << thresholdInteg << "\n";
         //throw;
       }
     }else{consistency = 0;}
