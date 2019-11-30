@@ -33,7 +33,7 @@ int main(int, char **) {
   Extern* external = NULL;
   external = new Extern();
   int nPredictors = external->getNpredictors();
-  srand(2); //random number generator
+  srand(4); //random number generator
   cv::namedWindow("robot view");
   cvui::init(STAT_WINDOW);
   auto statFrame = cv::Mat(400, 600, CV_8UC3);
