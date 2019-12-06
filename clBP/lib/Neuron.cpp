@@ -112,7 +112,7 @@ double Neuron::doActivation(double _sum){
             thisoutput = (1/(1+(exp(-_sum)))) - 0.5;
             break;
         case 1:
-            thisoutput = tanh(_sum) * 2;
+            thisoutput = tanh(_sum);
             break;
         case 2:
             thisoutput = _sum;
@@ -147,9 +147,9 @@ void Neuron::calcOutput(){
         sum += inputs[i] * weights[i];
     }
     sum += bias;
-    sum = (sum / nInputs);
+    sum =sum / nInputs;
     assert(std::isfinite(sum));
-    output = doActivation(sum);
+    output = doActivation(sum * 10);
     assert(std::isfinite(output));
 }
 

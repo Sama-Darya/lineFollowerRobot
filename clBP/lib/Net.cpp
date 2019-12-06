@@ -121,7 +121,7 @@ void Net::propError(){
                 weightSumer += fabs(tempWeight);
                 weightCounter += 1;
             }
-            normSum = (sum / weightCounter);// / weightCounter;
+            normSum = sum / weightCounter;
             assert(std::isfinite(sum));
             assert(std::isfinite(weightSumer));
             assert(std::isfinite(weightCounter));
