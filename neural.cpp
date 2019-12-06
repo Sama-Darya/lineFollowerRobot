@@ -68,8 +68,8 @@ const int numLayers = 12;
 void initialize_samanet(int numInputLayers, double sampleRate) {
   numInputLayers *= 5; // 5 is the number of filters
   int numNeurons[numLayers]= {};
-  int firstLayer = 11;
-  int decrementLayer = 0;
+  int firstLayer = 33;
+  int decrementLayer = 1;
   for (int i=0; i < numLayers - 1; i++){
     numNeurons[i] = firstLayer - i * decrementLayer;
   }

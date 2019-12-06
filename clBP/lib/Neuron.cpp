@@ -69,7 +69,7 @@ void Neuron::initNeuron(weightInitMethod _wim, biasInitMethod _bim, Neuron::actM
         initialWeights[i] = weights[i];
         weightSum = 0;
           for (int i=0; i<nInputs; i++){
-              weightSum += weights[i];
+              weightSum += fabs(weights[i]);
               maxWeight = max(maxWeight, weights[i]);
               minWeight = min (minWeight, weights[i]);
           }
@@ -125,7 +125,7 @@ double Neuron::doActivationPrime(double _input){
     double result = 0;
     switch(actMet){
         case 0:
-            result = 20 * ((doActivation(_input) + 0.5) * (0.5 - doActivation(_input))); //exp(-_input) / pow((exp(-_input) + 1),2);
+            result = 0.5 * (0.5 + doActivation(_input)) * (0.5 - doActivation(_input)); //exp(-_input) / pow((exp(-_input) + 1),2);
             break;
         case 1:
             result = 1 - pow (tanh(_input), 2);
@@ -147,7 +147,7 @@ void Neuron::calcOutput(){
         sum += inputs[i] * weights[i];
     }
     sum += bias;
-    sum = sum / nInputs;
+    sum = (sum / nInputs);
     assert(std::isfinite(sum));
     output = doActivation(sum);
     assert(std::isfinite(output));
@@ -176,7 +176,7 @@ void Neuron::updateWeights(){
   minWeight = 0;
     for (int i=0; i<nInputs; i++){
         weights[i] += learningRate * (error * inputs[i]);
-        weightSum += (weights[i]);
+        weightSum += fabs(weights[i]);
         maxWeight = max (maxWeight,weights[i]);
         minWeight = min (maxWeight,weights[i]);
     }

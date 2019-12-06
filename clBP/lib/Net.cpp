@@ -117,16 +117,16 @@ void Net::propError(){
             for (int j = 0; j < layers[i]->getnNeurons(); j++){
                 tempError = layers[i]->getError(j);
                 tempWeight = layers[i]->getWeights(j,k);
-                sum = sum + (globalError * tempWeight);
-                weightSumer = weightSumer + tempWeight;
+                sum += (tempError * tempWeight);
+                weightSumer += fabs(tempWeight);
                 weightCounter += 1;
             }
-            normSum = (sum / weightSumer) / weightCounter;
+            normSum = (sum / weightCounter);// / weightCounter;
             assert(std::isfinite(sum));
             assert(std::isfinite(weightSumer));
             assert(std::isfinite(weightCounter));
             assert(std::isfinite(normSum));
-            layers[i-1]->propError(k, normSum);
+            layers[i-1]->propError(k, sum);
           }
     }
     //cout << "---------------------------------------------------------------------------" << endl;
@@ -142,7 +142,7 @@ void Net::setGlobalError(double _globalError){
 void Net::setError(double _leadError){
     /* this is only for the final layer */
     theLeadError = _leadError;
-    //cout<< "globalError: " << theLeadError << endl;
+    //cout<< "lead Error: " << theLeadError << endl;
     layers[nLayers-1]->setError(theLeadError);
     /* if the leadError was diff. for each output neuron
      * then it would be implemented in a for-loop */

@@ -46,9 +46,9 @@ boost::circular_buffer<double> sensor7(samplingFreq * figureLength);
 
 std::ofstream datafs("speedDiffdata.csv");
 
-double errorMult = 2;
+double errorMult = 3;
 double nnMult = 1;
-double nnMultScale = 9.8;
+double nnMultScale = 13;
 int ampUp = 0;
 int startLearning = 0;
 
@@ -300,6 +300,8 @@ void Extern::calcPredictors(Mat &frame, vector<double> &predictorDeltaMeans){
                                                         {150,160,170,180,180,180,190,190},
                                                         {140,150,150,160,160,170,170,170},
                                                         {130,130,130,140,140,140,140,140}};
+  double predThreshWAdjustment = 20;
+  double predThreshWDiff = 50;
 	for (int k = 0; k < nPredictorRows; ++k) {
       for (int j = 0; j < nPredictorCols ; ++j) {
          auto lPred =
@@ -310,12 +312,12 @@ void Extern::calcPredictors(Mat &frame, vector<double> &predictorDeltaMeans){
                  area.y + k * predictorHeight, predictorWidth, predictorHeight);
         auto grayMeanL = mean(Mat(edges, lPred))[0];
         auto grayMeanR = mean(Mat(edges, rPred))[0];
-        if (grayMeanL < predThreshW[j][k] - 70){grayMeanL = predThreshW[j][k] - 70;}
-        if (grayMeanR < predThreshW[j][k] - 70){grayMeanR = predThreshW[j][k] - 70;}
-        if (grayMeanL > predThreshW[j][k] - 10){grayMeanL = predThreshW[j][k] - 10;}
-        if (grayMeanR > predThreshW[j][k] - 10){grayMeanR = predThreshW[j][k] - 10;}
-        double predScale = 1; // j + 1;
-        auto predValue = ((grayMeanL - grayMeanR) / 70) * predScale;
+        if (grayMeanL < predThreshW[j][k] - predThreshWDiff){grayMeanL = predThreshW[j][k] - predThreshWDiff;}
+        if (grayMeanR < predThreshW[j][k] - predThreshWDiff){grayMeanR = predThreshW[j][k] - predThreshWDiff;}
+        if (grayMeanL > predThreshW[j][k] - predThreshWAdjustment){grayMeanL = predThreshW[j][k] - predThreshWAdjustment;}
+        if (grayMeanR > predThreshW[j][k] - predThreshWAdjustment){grayMeanR = predThreshW[j][k] - predThreshWAdjustment;}
+        double predScale = 0.02; // j + 1;
+        auto predValue = ((grayMeanL - grayMeanR) / predThreshWDiff) * predScale;
         predictorDeltaMeans.push_back(predValue);
         putText(frame, std::to_string((int)(grayMeanL - grayMeanR)),
                 Point{lPred.x + lPred.width / 2 - 13,
