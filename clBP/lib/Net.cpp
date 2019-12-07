@@ -113,20 +113,20 @@ void Net::propError(){
             double_t sum = 0.0;
             double_t normSum = 0.0;
             double_t weightSumer = 0.0;
-            int weightCounter = 0;
+            int counter = 0;
             for (int j = 0; j < layers[i]->getnNeurons(); j++){
                 tempError = layers[i]->getError(j);
                 tempWeight = layers[i]->getWeights(j,k);
                 sum += (tempError * tempWeight);
                 weightSumer += fabs(tempWeight);
-                weightCounter += 1;
+                counter += 1;
             }
-            normSum = sum / weightCounter;
+            normSum = sum ; // / weightSumer;
             assert(std::isfinite(sum));
             assert(std::isfinite(weightSumer));
-            assert(std::isfinite(weightCounter));
+            assert(std::isfinite(counter));
             assert(std::isfinite(normSum));
-            layers[i-1]->propError(k, sum);
+            layers[i-1]->propError(nLayers-2, i-1, k, normSum);
           }
     }
     //cout << "---------------------------------------------------------------------------" << endl;

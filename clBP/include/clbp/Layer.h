@@ -33,7 +33,7 @@ public:
     void propInputs(int _index, double _value);
     /*this is for hidden and output layers (not input)*/
     void printLayer();
-    void propError(int _neuronIndex, double _nextSum);
+    void propError(int _nLayers, int _layerIndex, int _neuronIndex, double _nextSum);
     int getnNeurons();
     void setlearningRate(double _learningRate);
     double getError(int _neuronIndex);

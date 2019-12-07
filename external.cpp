@@ -100,7 +100,7 @@ int Extern::onStepCompleted(cv::Mat &statFrame, double deltaSensorData, std::vec
 Bandpass sensorFilters[8];
 
 double cutOff = 10;
-double sampFreq = 0.033;
+double sampFreq = 0.09;
 LowPassFilter lpf0(cutOff, sampFreq);
 LowPassFilter lpf1(cutOff, sampFreq);
 LowPassFilter lpf2(cutOff, sampFreq);

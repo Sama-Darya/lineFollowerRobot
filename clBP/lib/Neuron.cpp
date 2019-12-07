@@ -125,7 +125,7 @@ double Neuron::doActivationPrime(double _input){
     double result = 0;
     switch(actMet){
         case 0:
-            result = 0.5 * (0.5 + doActivation(_input)) * (0.5 - doActivation(_input)); //exp(-_input) / pow((exp(-_input) + 1),2);
+            result = 1 * (0.5 + doActivation(_input)) * (0.5 - doActivation(_input)); //exp(-_input) / pow((exp(-_input) + 1),2);
             break;
         case 1:
             result = 1 - pow (tanh(_input), 2);
@@ -147,9 +147,8 @@ void Neuron::calcOutput(){
         sum += inputs[i] * weights[i];
     }
     sum += bias;
-    sum =sum / nInputs;
     assert(std::isfinite(sum));
-    output = doActivation(sum * 10);
+    output = doActivation(sum);
     assert(std::isfinite(output));
 }
 

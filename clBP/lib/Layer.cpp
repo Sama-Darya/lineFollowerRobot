@@ -91,7 +91,7 @@ void Layer::setError(double _leadError){
     }
 }
 
-void Layer::propError(int _neuronIndex, double _nextSum){
+void Layer::propError(int _nLayers, int _layerIndex, int _neuronIndex, double _nextSum){
     neurons[_neuronIndex]->propError(_nextSum);
     // if (_neuronIndex == 0){
     //   cout << " BP>> acc2=Sum(W*E): " << _nextSum;
@@ -100,6 +100,29 @@ void Layer::propError(int _neuronIndex, double _nextSum){
     //   cout << " sigmoid(sum): " << neurons[_neuronIndex]->getOutput();
     //   cout << " " << endl;
     // }
+    
+    /*
+    if (_neuronIndex == 0 && _layerIndex == 0){
+      std::ofstream vanishErrfile;
+      string name1 = "vanishingErrorL0N0.csv";
+      vanishErrfile.open(name1, fstream::app);
+      vanishErrfile << _nextSum << " " << neurons[_neuronIndex]->getError() << " "
+                    << neurons[_neuronIndex]->getSumOutput() << " " << neurons[_neuronIndex]->getOutput();
+      vanishErrfile << "\n";
+      vanishErrfile.close();
+    }
+
+    if (_neuronIndex == 0 && _layerIndex == _nLayers){
+      std::ofstream vanishActfile;
+      string name2 = "vanishingActLnN0.csv";
+      vanishActfile.open(name2, fstream::app);
+      vanishActfile << _nextSum << " " << neurons[_neuronIndex]->getError() << " "
+                    << neurons[_neuronIndex]->getSumOutput() << " " << neurons[_neuronIndex]->getOutput();
+      vanishActfile << "\n";
+      vanishActfile.close();
+    }
+    */
+
 }
 
 double Layer::getError(int _neuronIndex){
