@@ -1,0 +1,28 @@
+### Start multiplot (2x2 layout)
+set multiplot layout 2,2 rowsfirst
+
+# **** Error ****
+set grid
+set size 0.5,0.75
+set origin 0,0
+set title setMyTitle
+plot for [col=1:3:2] "errorSuccessData.csv" using 0:col with lines notitle
+
+# **** Weights ****
+set size 0.5,0.75
+set origin 0.5,0
+plot for [col = 1:13] "weight_distances.csv" using 0:col with lines notitle
+
+# **** Steering ****
+set size 0.5,0.25
+set origin 0,0.75
+plot "speedDiffdata.csv" using 0:5 with lines notitle
+
+# **** Grayscale ****
+set size 0.5,0.25
+set origin 0.5,0.75
+set size ratio 0.2; set palette gray negative; plot "wL1.csv" matrix w image noti
+show grid
+
+unset multiplot
+### End multiplot

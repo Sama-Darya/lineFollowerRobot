@@ -49,7 +49,9 @@ void Neuron::propInputs(int _index,  double _value){
     inputs[_index] = _value;
 }
 
-void Neuron::initNeuron(weightInitMethod _wim, biasInitMethod _bim, Neuron::actMethod _am){
+void Neuron::initNeuron(int _neuronIndex, int _layerIndex, weightInitMethod _wim, biasInitMethod _bim, Neuron::actMethod _am){
+    myLayerIndex = _layerIndex;
+    myNeuronIndex = _neuronIndex;
     for (int i=0; i<nInputs; i++){
         switch (_wim){
             case W_ZEROS:
@@ -59,7 +61,7 @@ void Neuron::initNeuron(weightInitMethod _wim, biasInitMethod _bim, Neuron::actM
                 weights[i]=1;
                 break;
             case W_RANDOM:
-                weights[i]=((double)rand()/(RAND_MAX));
+                weights[i]=(((double)rand()/(RAND_MAX)));// * 2)-1;
                 break;
                 //cout << " Neuron: weight is: " << weights[i] << endl;
                 /* rand function generates a random function between
@@ -147,6 +149,9 @@ void Neuron::calcOutput(){
         sum += inputs[i] * weights[i];
     }
     sum += bias;
+    if (myLayerIndex == 0){
+      sum = sum / 200;
+    }
     assert(std::isfinite(sum));
     output = doActivation(sum);
     assert(std::isfinite(output));
@@ -173,8 +178,12 @@ void Neuron::updateWeights(){
   weightSum = 0;
   maxWeight = 0;
   minWeight = 0;
+  double force = 1;
+  if (myLayerIndex == 0){
+    force  = 1;
+  }
     for (int i=0; i<nInputs; i++){
-        weights[i] += learningRate * (error * inputs[i]);
+        weights[i] += learningRate * (error * inputs[i]) * force;
         weightSum += fabs(weights[i]);
         maxWeight = max (maxWeight,weights[i]);
         minWeight = min (maxWeight,weights[i]);

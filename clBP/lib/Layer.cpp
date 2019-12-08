@@ -93,14 +93,14 @@ void Layer::setError(double _leadError){
 
 void Layer::propError(int _nLayers, int _layerIndex, int _neuronIndex, double _nextSum){
     neurons[_neuronIndex]->propError(_nextSum);
-    // if (_neuronIndex == 0){
-    //   cout << " BP>> acc2=Sum(W*E): " << _nextSum;
-    //   cout << " e=acc*sigmoid'(acc1): " << neurons[_neuronIndex]->getError();
-    //   cout << " FP>> acc1=Sum(w.in): " << neurons[_neuronIndex]->getSumOutput();
-    //   cout << " sigmoid(sum): " << neurons[_neuronIndex]->getOutput();
-    //   cout << " " << endl;
-    // }
-    
+    if (_neuronIndex == 0){
+      cout << " BP>> acc2=Sum(W*E): " << _nextSum;
+      cout << " e=acc*sigmoid'(acc1): " << neurons[_neuronIndex]->getError();
+      cout << " FP>> acc1=Sum(w.in): " << neurons[_neuronIndex]->getSumOutput();
+      cout << " sigmoid(sum): " << neurons[_neuronIndex]->getOutput();
+      cout << " " << endl;
+    }
+
     /*
     if (_neuronIndex == 0 && _layerIndex == 0){
       std::ofstream vanishErrfile;
@@ -163,9 +163,9 @@ double Layer::getOutput(int _neuronIndex){
 }
 
 
-void Layer::initLayer(Neuron::weightInitMethod _wim, Neuron::biasInitMethod _bim, Neuron::actMethod _am){
+void Layer::initLayer(int _layerIndex, Neuron::weightInitMethod _wim, Neuron::biasInitMethod _bim, Neuron::actMethod _am){
     for (int i=0; i<nNeurons; i++){
-        neurons[i]->initNeuron(_wim, _bim, _am);
+        neurons[i]->initNeuron(i, _layerIndex, _wim, _bim, _am);
     }
 }
 

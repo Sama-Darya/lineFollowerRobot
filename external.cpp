@@ -46,7 +46,7 @@ boost::circular_buffer<double> sensor7(samplingFreq * figureLength);
 
 std::ofstream datafs("speedDiffdata.csv");
 
-double errorMult = 3;
+double errorMult = 2;
 double nnMult = 1;
 double nnMultScale = 0;
 int ampUp = 0;
@@ -100,7 +100,7 @@ int Extern::onStepCompleted(cv::Mat &statFrame, double deltaSensorData, std::vec
 Bandpass sensorFilters[8];
 
 double cutOff = 10;
-double sampFreq = 0.09;
+double sampFreq = 0.033;
 LowPassFilter lpf0(cutOff, sampFreq);
 LowPassFilter lpf1(cutOff, sampFreq);
 LowPassFilter lpf2(cutOff, sampFreq);
@@ -247,6 +247,7 @@ double Extern::calcError(cv::Mat &statFrame, vector<char> &sensorCHAR){
     errorSuccessDatafs << error << " "
            << CenteredError << " "
            << integAveError << "\n";
+
     if (fabs(error) > 0.01 && setFirstEncounter == 1){
       firstEncounter = stepCount;
       setFirstEncounter =0;
@@ -316,8 +317,8 @@ void Extern::calcPredictors(Mat &frame, vector<double> &predictorDeltaMeans){
         if (grayMeanR < predThreshW[j][k] - predThreshWDiff){grayMeanR = predThreshW[j][k] - predThreshWDiff;}
         if (grayMeanL > predThreshW[j][k] - predThreshWAdjustment){grayMeanL = predThreshW[j][k] - predThreshWAdjustment;}
         if (grayMeanR > predThreshW[j][k] - predThreshWAdjustment){grayMeanR = predThreshW[j][k] - predThreshWAdjustment;}
-        double predScale = 0.02; // j + 1;
-        auto predValue = ((grayMeanL - grayMeanR) / predThreshWDiff) * predScale;
+        double predScale = 5;
+        auto predValue = ((grayMeanL - grayMeanR) / predThreshWDiff) / predScale;
         predictorDeltaMeans.push_back(predValue);
         putText(frame, std::to_string((int)(grayMeanL - grayMeanR)),
                 Point{lPred.x + lPred.width / 2 - 13,

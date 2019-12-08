@@ -68,10 +68,11 @@ const int numLayers = 12;
 void initialize_samanet(int numInputLayers, double sampleRate) {
   numInputLayers *= 5; // 5 is the number of filters
   int numNeurons[numLayers]= {};
-  int firstLayer = 33;
-  int decrementLayer = 1;
+  int firstLayer = 11;
+  int decrementLayer = 0;
   for (int i=0; i < numLayers - 1; i++){
     numNeurons[i] = firstLayer - i * decrementLayer;
+    assert(numNeurons[i] > 3);
   }
   numNeurons[numLayers - 1] = 3; //output layer
 
@@ -152,7 +153,7 @@ double run_samanet(cv::Mat &statFrame, std::vector<double> &predictorDeltas, dou
   }
   weightDistancesfs << samanet->getWeightDistance() << "\n";
 
-  double coeff[4] = {2,4,6,8};
+  double coeff[4] = {1,3,5};
   double outSmall = samanet->getOutput(0);
   double outMedium = samanet->getOutput(1);
   double outLarge = samanet->getOutput(2);
