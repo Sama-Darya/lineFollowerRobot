@@ -80,7 +80,7 @@ void initialize_samanet(int numInputLayers, double sampleRate) {
 
   samanet = std::make_unique<Net>(numLayers, numNeurons, numInputLayers);
   samanet->initNetwork(Neuron::W_RANDOM, Neuron::B_NONE, Neuron::Act_Sigmoid);
-  double myLearningRate = 2 * pow(10,-3);
+  double myLearningRate = 2 * pow(10,-2);
   samanet->setLearningRate(myLearningRate);
   initialize_filters(numInputLayers, sampleRate);
 }

@@ -61,7 +61,6 @@ int Extern::onStepCompleted(cv::Mat &statFrame, double deltaSensorData, std::vec
   cvui::text(statFrame, 10, 300, "Net Output Multiplier: ");
   cvui::trackbar(statFrame, 180, 300, 400, &nnMult, (double)0.0, (double)10.0, 1, "%.2Lf", 0, 0.5);
 	cvui::trackbar(statFrame, 180, 350, 400, &nnMultScale, (double)0, (double)20, 1, "%.2Lf", 0, 0.5);
-  // cout << "external: error= " << error << endl;
   assert(std::isfinite(error));
   double errorGain = 1;
   double errroForLearning = errorGain * error;
@@ -253,19 +252,31 @@ double Extern::calcError(cv::Mat &statFrame, vector<char> &sensorCHAR){
       setFirstEncounter =0;
     }
     maxIntegral = max (maxIntegral,fabs(integAveError));
-    thresholdInteg = maxIntegral / 3;
+    thresholdInteg = 0.38; //maxIntegral / 3;
     stepCount += 1;
     checkSucess += 1;
 
-    if (checkSucess > loopLength && fabs(integAveError) < thresholdInteg && successDone == 0){
-      consistency += 1;
-      if (consistency > 100){
-        cout << "SUCCESS! on Step: " << stepCount - firstEncounter << ", with Error Integral reduction of: " << integAveError << endl;
+    if (nnMult == 0){
+      if ( stepCount - firstEncounter > 5000 && successDone == 0){
+        cout << "DONE! with Error Integral of: " << integAveError
+        << ", with max Error of: " << maxIntegral << endl;
         successDone = 1;
-        successRatef << firstEncounter << " " << stepCount << " " << integAveError << " " << thresholdInteg << "\n";
-        //throw;
+        successRatef << firstEncounter << " " << stepCount << " " << integAveError << " " << maxIntegral << "\n";
+        //throw
       }
-    }else{consistency = 0;}
+    }else{
+      if (checkSucess > loopLength && fabs(integAveError) < thresholdInteg && successDone == 0){
+        consistency += 1;
+        if (consistency > 100){
+          cout << "SUCCESS! on Step: " << stepCount - firstEncounter
+          << ", with Error Integral of: " << integAveError
+          << ", with max Error of: " << maxIntegral << endl;
+          successDone = 1;
+          successRatef << firstEncounter << " " << stepCount << " " << integAveError << " " << maxIntegral << "\n";
+          //throw;
+        }
+      }else{consistency = 0;}
+    }
 
     assert(std::isfinite(CenteredError));
     return error;
