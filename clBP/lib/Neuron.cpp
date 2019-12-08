@@ -241,14 +241,24 @@ double Neuron::getInitWeights(int _inputIndex){
     return (initialWeights[_inputIndex]);
 }
 
-void Neuron::saveWeights(string _fileName){
-    std::ofstream Icofile;
-    Icofile.open(_fileName, fstream::app);
-    for (int i=0; i<nInputs; i++){
-        Icofile << weights[i] << " " ;
-    }
-    Icofile << "\n";
-    Icofile.close();
+void Neuron::saveWeights(){
+  char l = '0';
+  char n = '0';
+  l += myLayerIndex + 1;
+  n += myNeuronIndex + 1;
+  string name = "w";
+  name += 'L';
+  name += l;
+  name += 'N';
+  name += n;
+  name += ".csv";
+  std::ofstream Icofile;
+  Icofile.open(name, fstream::app);
+  for (int i=0; i<nInputs; i++){
+    Icofile << weights[i] << " " ;
+  }
+  Icofile << "\n";
+  Icofile.close();
 }
 
 void Neuron::printNeuron(){

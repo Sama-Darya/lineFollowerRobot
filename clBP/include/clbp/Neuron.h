@@ -53,7 +53,7 @@ public:
     double getWeightChange();
     double getWeightDistance();
     int getnInputs();
-    void saveWeights(string _fileName);
+    void saveWeights();
 
     inline void setWeight(int _index, double _weight) {
         assert((_index >= 0) && (_index < nInputs));

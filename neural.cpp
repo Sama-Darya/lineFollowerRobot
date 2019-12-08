@@ -1,6 +1,8 @@
 #include "neural.h"
 #include "clbp/Net.h"
 #include "cvui.h"
+#include "bandpass.h"
+
 #include <chrono>
 #include <fstream>
 #include <initializer_list>
@@ -8,7 +10,7 @@
 #include <opencv2/opencv.hpp>
 #include <string>
 #include <vector>
-#include "bandpass.h"
+#include <numeric>
 #include <boost/circular_buffer.hpp>
 
 using namespace std;
@@ -78,7 +80,8 @@ void initialize_samanet(int numInputLayers, double sampleRate) {
 
   samanet = std::make_unique<Net>(numLayers, numNeurons, numInputLayers);
   samanet->initNetwork(Neuron::W_RANDOM, Neuron::B_NONE, Neuron::Act_Sigmoid);
-  samanet->setLearningRate(0.1);
+  double myLearningRate = 2 * pow(10,-3);
+  samanet->setLearningRate(myLearningRate);
   initialize_filters(numInputLayers, sampleRate);
 }
 
@@ -146,7 +149,7 @@ double run_samanet(cv::Mat &statFrame, std::vector<double> &predictorDeltas, dou
   samanet->updateWeights(); // Learn from previous action
   samanet->setInputs(networkInputs.data()); //then take a new action
   samanet->propInputs();
-  samanet->saveWeights();
+  samanet->snapWeights();
 
   for (int i = 0; i <numLayers; i++){
     weightDistancesfs << samanet->getLayerWeightDistance(i) << " ";

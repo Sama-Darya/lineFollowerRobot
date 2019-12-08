@@ -33,7 +33,7 @@ public:
     void propInputs(int _index, double _value);
     /*this is for hidden and output layers (not input)*/
     void printLayer();
-    void propError(int _nLayers, int _layerIndex, int _neuronIndex, double _nextSum);
+    void propError(int _neuronIndex, double _nextSum);
     int getnNeurons();
     void setlearningRate(double _learningRate);
     double getError(int _neuronIndex);
@@ -45,8 +45,8 @@ public:
     void setGlobalError(double _globalError);
     void setError(double _leadError);
     void updateWeights();
-    int saveWeights(int _layerIndex, int _neuronCount);
-    void snapWeights(int _layerIndex); // This one just saves the final weights
+    void saveWeights();
+    void snapWeights(); // This one just saves the final weights
     // i.e. overwrites them
 
     Neuron *getNeuron(int _neuronIndex);
@@ -60,5 +60,6 @@ private:
     double weightChange=0;
     double globalError = 0;
     int printInfo = 1;
+    int myLayerIndex = 0;
 
 };

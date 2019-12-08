@@ -48,7 +48,7 @@ Net::Net(int _nLayers, int* _nNeurons, int _nInputs)
         nNeurons += layers[i]->getnNeurons();
     }
 
-    cout << "number of inputs are: " << nInputs << endl;
+    //cout << "number of inputs are: " << nInputs << endl;
 }
 
 Net::~Net(){
@@ -126,26 +126,26 @@ void Net::propError(){
             assert(std::isfinite(weightSumer));
             assert(std::isfinite(counter));
             assert(std::isfinite(normSum));
-            layers[i-1]->propError(nLayers-2, i-1, k, normSum);
+            layers[i-1]->propError(k, normSum);
           }
     }
-    cout << "---------------------------------------------------------------------------" << endl;
+    //cout << "---------------------------------------------------------------------------" << endl;
 }
 
 void Net::setGlobalError(double _globalError){
   globalError = _globalError;
-  for (int i=nLayers-1; i>=0; i--){
-      layers[i]->setGlobalError(globalError);
-  }
 }
 
 void Net::setError(double _leadError){
     /* this is only for the final layer */
     theLeadError = _leadError;
-    cout<< "lead Error: " << theLeadError << endl;
+    //cout<< "lead Error: " << theLeadError << endl;
     layers[nLayers-1]->setError(theLeadError);
     /* if the leadError was diff. for each output neuron
      * then it would be implemented in a for-loop */
+    for (int i=nLayers-1; i>=0; i--){
+     layers[i]->setGlobalError(globalError);
+    }
 }
 
 void Net::updateWeights(){
@@ -187,11 +187,16 @@ int Net::getnNeurons(){
 }
 
 void Net::saveWeights(){
-    int neuronCount = 0;
     for (int i=0; i<nLayers; i++){
-        neuronCount += layers[i]->saveWeights(i, neuronCount);
-        layers[i]->snapWeights(i);
+        layers[i]->saveWeights();
     }
+}
+
+void Net::snapWeights(){
+  layers[0]->snapWeights();
+    // for (int i=0; i<nLayers; i++){
+    //     layers[i]->snapWeights();
+    // }
 }
 
 void Net::printNetwork(){
