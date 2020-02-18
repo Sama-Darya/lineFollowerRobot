@@ -144,8 +144,9 @@ double run_samanet(cv::Mat &statFrame, std::vector<double> &predictorDeltas, dou
   // cout << "neural: error: " << error << endl;
   assert(std::isfinite(error));
   samanet->setGlobalError(error);
-  samanet->setError(error);
-  samanet->propError();
+  samanet->setErrorCoeff(0,0,0,0,1);
+  samanet->setLocalError(error);
+  samanet->propGlobalErrorBackwardLocally();
   samanet->updateWeights(); // Learn from previous action
   samanet->setInputs(networkInputs.data()); //then take a new action
   samanet->propInputs();
