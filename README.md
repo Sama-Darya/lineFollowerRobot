@@ -13,6 +13,6 @@ In order to build:
 
 This will build the clBP library automatically.
 
-###
+### The robot
 
-![](Images/robot.jpg)
+![](robot.jpg)
