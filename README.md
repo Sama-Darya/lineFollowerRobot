@@ -1,20 +1,18 @@
-# Line Follower Robot
-This repository provides a platform for online predictive learning for closed-loop systems, a line follower robot in this case. The physical robot implementation consists of two parts: The computer controller (on a Raspberry Pi) that generates the steering command and the arduino sketch that controls the robot's servo motors.
+# LineFollowerRobot
+This repository provides a platform for online predictive learning in the context of closed-loop robotic systems. The physical robot is built on a SumoBot chassis with a mounted Raspberry Pi that serves as a computation engine for the learning algorithm. The steering command from RPi is passed to an Arduino that generates the PWM signal for the robot's servo motors. The Light sensors from the Robot provide instructive feedback to the learner in the form of a closed-loop error signal.
 
-### Building RoboNet
-RoboNet has the following dependencies that must be installed:
+### Building LineFollowerRobot
+LineFollowerRobot has the following dependencies that must be installed:
 - ``boost``
 - ``opencv``
 
 In order to build:
-- enter the LineFollowerRobot directory -- ``cd LineFollowerRobot``
-- create a build directory -- ``mkdir build``
-- run cmake -- ``cmake ..``
+- enter the LineFollowerRobot directory -- ``cd lineFollowerRobot``
+- run cmake -- ``cmake .``
 - run the build system -- ``make``
 
-## Building ClBP
-ClBP uses cmake. just enter the clBP directory from the root and type:
-- ``mkdir build && cd build``
-- ``cmake ..``
-- ``make``
-- record the path to both the generated library file (``libclBP.a``) and of the ``include`` directory.
+This will build the clBP library automatically.
+
+###
+
+![](Images/robot.jpg)
