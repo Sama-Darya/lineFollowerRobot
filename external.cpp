@@ -252,11 +252,11 @@ double Extern::calcError(cv::Mat &statFrame, vector<char> &sensorCHAR){
       setFirstEncounter =0;
     }
     maxIntegral = max (maxIntegral,fabs(integAveError));
-    thresholdInteg = 0.38; //maxIntegral / 3;
+    thresholdInteg = 0.1; // maxIntegral / 10;  //0.38;
     stepCount += 1;
     checkSucess += 1;
 
-    if (nnMult == 0){
+    if (nnMult == 0){ // this is for reflex only
       if ( stepCount - firstEncounter > 5000 && successDone == 0){
         cout << "DONE! with Error Integral of: " << integAveError
         << ", with max Error of: " << maxIntegral << endl;
@@ -264,7 +264,7 @@ double Extern::calcError(cv::Mat &statFrame, vector<char> &sensorCHAR){
         successRatef << firstEncounter << " " << stepCount << " " << integAveError << " " << maxIntegral << "\n";
         //throw
       }
-    }else{
+    }else{ // this is for learning runs
       if (checkSucess > loopLength && fabs(integAveError) < thresholdInteg && successDone == 0){
         consistency += 1;
         if (consistency > 100){
@@ -272,7 +272,7 @@ double Extern::calcError(cv::Mat &statFrame, vector<char> &sensorCHAR){
           << ", with Error Integral of: " << integAveError
           << ", with max Error of: " << maxIntegral << endl;
           successDone = 1;
-          successRatef << firstEncounter << " " << stepCount << " " << integAveError << " " << maxIntegral << "\n";
+          successRatef << firstEncounter << " " << stepCount - firstEncounter << " " << integAveError << " " << maxIntegral << "\n";
           //throw;
         }
       }else{consistency = 0;}
