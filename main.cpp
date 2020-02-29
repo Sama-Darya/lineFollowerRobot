@@ -76,15 +76,20 @@ int main(int, char **) {
     }
     double sensorError = external->calcError(statFrame, sensorCHAR);
     if (Ret > 0){
+      // int speedError = 100 + external->onStepCompleted(statFrame, sensorError, predictorDeltaMeans);
+      // char speedErrorChar = (char)speedError;
+
       external->onStepCompleted(statFrame, sensorError, predictorDeltaMeans);
-      int mainLeftVelocity = external->getExtLeftVelocity();
-      int mainRightVelocity = external->getExtRightVelocity();
-      int mainDifferentialVelocity = external->getExtDifferentialVelocity();
+      
+      int mainLeftVelocity = 30; //external->getExtLeftVelocity();
+      int mainRightVelocity = -30; //external->getExtRightVelocity();
+      int mainDifferentialVelocity = 0; //external->getExtDifferentialVelocity();
+      
       char charLeftVelocity = (char)mainLeftVelocity;
       char charRightVelocity = (char)mainRightVelocity;
       char charDifferentialVelocity = (char)mainDifferentialVelocity;
       char speedErrorChar[3] = {charDifferentialVelocity, charLeftVelocity, charRightVelocity};
-
+      
       Ret = LS.Write(&speedErrorChar, sizeof(speedErrorChar));
     }
     // Show everything on the screen

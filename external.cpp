@@ -81,9 +81,9 @@ void Extern::onStepCompleted(cv::Mat &statFrame, double deltaSensorData, std::ve
     //cvui::printf(statFrame, 540, 250, "%.2fs", elapsed_s);
   }
   double reflex = error * errorMult;
-  double learning = result * nnMult * pow(10,nnMultScale);
+  double learning = extDifferentialVelocity * nnMult * pow(10,nnMultScale);
   cvui::text(statFrame, 220, 10, "Net out:");
-  cvui::printf(statFrame, 300, 10, "%+.4lf (%+.4lf)", result, learning);
+  cvui::printf(statFrame, 300, 10, "%+.4lf (%+.4lf)", extDifferentialVelocity, learning);
   cvui::text(statFrame, 220, 30, "Error:");
   cvui::printf(statFrame, 300, 30, "%+.4lf (%+.4lf)", deltaSensorData, reflex);
   int gain = 1;
@@ -94,24 +94,23 @@ void Extern::onStepCompleted(cv::Mat &statFrame, double deltaSensorData, std::ve
   datafs << deltaSensorData << " "
          << error << " "
          << reflex << " "
-         << result << " "
+         << extDifferentialVelocity << " "
          << learning << " "
          << errorSpeed << "\n";
 }
 
-int Extern::getExtdifferentialVelocity(){
-  return (int)extdifferentialVelocity;
+int Extern::getExtDifferentialVelocity(){
+  return (int)extDifferentialVelocity;
 }
 
-int Extern::getExtleftVelocity(){
-  return (int)extleftVelocity;
+int Extern::getExtLeftVelocity(){
+  return (int)extLeftVelocity;
 }
 
-int Extern::getExtrightVelocity(){
-  return (int)extrightVelocity;
+int Extern::getExtRightVelocity(){
+  return (int)extRightVelocity;
 }
 Bandpass sensorFilters[8];
-
 double cutOff = 10;
 double sampFreq = 0.033;
 LowPassFilter lpf0(cutOff, sampFreq);

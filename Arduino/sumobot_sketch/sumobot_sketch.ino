@@ -35,7 +35,10 @@ char speedCommand[3] = {0};
 
 void loop() {
   while(Serial.available() > 0){
-    &speedCommand = Serial.read();
+	int availableBytes = Serial.available();
+	for (int i=0; i<availableBytes; i++){
+		speedCommand[i] = Serial.read();
+	}
     servoLeft.writeMicroseconds(speedLeft + (int)speedCommand[0] + (int)speedCommand[1] );
     servoRight.writeMicroseconds(speedRight + (int)speedCommand[0] - (int)speedCommand[2]);
     sensorBuffer[8]= 0;
