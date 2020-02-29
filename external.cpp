@@ -52,7 +52,7 @@ double nnMultScale = 0;
 int ampUp = 0;
 int startLearning = 0;
 
-int Extern::onStepCompleted(cv::Mat &statFrame, double deltaSensorData, std::vector<double> &predictorDeltas) {
+void Extern::onStepCompleted(cv::Mat &statFrame, double deltaSensorData, std::vector<double> &predictorDeltas) {
   prevErrors.push_back(deltaSensorData); //puts the errors in a buffer for plotting
 
   double error = deltaSensorData;
@@ -67,7 +67,11 @@ int Extern::onStepCompleted(cv::Mat &statFrame, double deltaSensorData, std::vec
   if (nnMult == 0){
     errroForLearning = 0;
   }
-  double result = run_samanet(statFrame, predictorDeltas, errroForLearning); //does one learning iteration, why divide by 5?
+  run_samanet(statFrame, predictorDeltas, errroForLearning);
+  extDifferentialVelocity = getResults(0);
+  extLeftVelocity = getResults(1);
+  extRightVelocity = getResults(2);
+
   {
     std::vector<double> error_list(prevErrors.begin(), prevErrors.end());
     cvui::sparkline(statFrame, error_list, 10, 50, 580, 200, 0x000000);
@@ -93,8 +97,18 @@ int Extern::onStepCompleted(cv::Mat &statFrame, double deltaSensorData, std::vec
          << result << " "
          << learning << " "
          << errorSpeed << "\n";
+}
 
-  return (int)errorSpeed;
+int Extern::getExtdifferentialVelocity(){
+  return (int)extdifferentialVelocity;
+}
+
+int Extern::getExtleftVelocity(){
+  return (int)extleftVelocity;
+}
+
+int Extern::getExtrightVelocity(){
+  return (int)extrightVelocity;
 }
 Bandpass sensorFilters[8];
 
