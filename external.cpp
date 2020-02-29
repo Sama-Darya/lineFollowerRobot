@@ -47,9 +47,8 @@ boost::circular_buffer<double> sensor7(samplingFreq * figureLength);
 std::ofstream datafs("speedDiffdata.csv");
 
 double errorMult = 2;
-double nnMult = 1;
-double nnMultScale = 0;
-int ampUp = 0;
+double diffMult = 1;
+double velocityMult = 1;
 int startLearning = 0;
 
 void Extern::onStepCompleted(cv::Mat &statFrame, double deltaSensorData, std::vector<double> &predictorDeltas) {
@@ -58,19 +57,15 @@ void Extern::onStepCompleted(cv::Mat &statFrame, double deltaSensorData, std::ve
   double error = deltaSensorData;
   cvui::text(statFrame, 10, 250, "Sensor Error Multiplier: ");
   cvui::trackbar(statFrame, 180, 250, 400, &errorMult, (double)0.0, (double)10.0, 1, "%.2Lf", 0, 0.5);
-  cvui::text(statFrame, 10, 300, "Net Output Multiplier: ");
-  cvui::trackbar(statFrame, 180, 300, 400, &nnMult, (double)0.0, (double)10.0, 1, "%.2Lf", 0, 0.5);
-	cvui::trackbar(statFrame, 180, 350, 400, &nnMultScale, (double)0, (double)20, 1, "%.2Lf", 0, 0.5);
+  cvui::text(statFrame, 10, 300, "Net diff_Output Multiplier: ");
+  cvui::trackbar(statFrame, 180, 300, 400, &diffMult, (double)0.0, (double)10.0, 1, "%.2Lf", 0, 0.5);
+    cvui::text(statFrame, 10, 350, "Net velocity_Output Multiplier: ");
+  cvui::trackbar(statFrame, 180, 350, 400, &velocityMult, (double)0, (double)10, 1, "%.2Lf", 0, 0.5);
   assert(std::isfinite(error));
-  double errorGain = 1;
-  double errroForLearning = errorGain * error;
-  if (nnMult == 0){
-    errroForLearning = 0;
-  }
-  run_samanet(statFrame, predictorDeltas, errroForLearning);
-  extDifferentialVelocity = getResults(0);
-  extLeftVelocity = getResults(1);
-  extRightVelocity = getResults(2);
+  run_samanet(statFrame, predictorDeltas, error);
+  double difftemp = getResults(0);
+  extLeftVelocity = velocityMult * getResults(1);
+  extRightVelocity = velocityMult * getResults(2);
 
   {
     std::vector<double> error_list(prevErrors.begin(), prevErrors.end());
@@ -80,23 +75,17 @@ void Extern::onStepCompleted(cv::Mat &statFrame, double deltaSensorData, std::ve
     //cvui::printf(statFrame, 10, 250, "%.2fs", chart_start_t);
     //cvui::printf(statFrame, 540, 250, "%.2fs", elapsed_s);
   }
-  double reflex = error * errorMult;
-  double learning = extDifferentialVelocity * nnMult * pow(10,nnMultScale);
   cvui::text(statFrame, 220, 10, "Net out:");
-  cvui::printf(statFrame, 300, 10, "%+.4lf (%+.4lf)", extDifferentialVelocity, learning);
+  cvui::printf(statFrame, 300, 10, "%+.4lf (%+.4lf)", difftemp, difftemp * diffMult);
   cvui::text(statFrame, 220, 30, "Error:");
-  cvui::printf(statFrame, 300, 30, "%+.4lf (%+.4lf)", deltaSensorData, reflex);
-  int gain = 1;
-  double errorSpeed = (reflex + learning) * gain;
+  cvui::printf(statFrame, 300, 30, "%+.4lf (%+.4lf)", error, error * errorMult);
+  extDifferentialVelocity = error * errorMult + difftemp * diffMult;
   using namespace std::chrono;
   milliseconds ms = duration_cast<milliseconds>(system_clock::now().time_since_epoch());
 
-  datafs << deltaSensorData << " "
-         << error << " "
-         << reflex << " "
-         << extDifferentialVelocity << " "
-         << learning << " "
-         << errorSpeed << "\n";
+  datafs << error << " "
+         << difftemp << " "
+         << extDifferentialVelocity << "\n";
 }
 
 int Extern::getExtDifferentialVelocity(){
@@ -269,7 +258,7 @@ double Extern::calcError(cv::Mat &statFrame, vector<char> &sensorCHAR){
     stepCount += 1;
     checkSucess += 1;
 
-    if (nnMult == 0){ // this is for reflex only
+    if (diffMult == 0 && velocityMult == 0){ // this is for reflex only
       if ( stepCount - firstEncounter > 5000 && successDone == 0){
         cout << "DONE! with Error Integral of: " << integAveError
         << ", with max Error of: " << maxIntegral << endl;

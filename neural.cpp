@@ -88,6 +88,10 @@ std::ofstream weightDistancesfs("weight_distances.csv");
 std::ofstream predictor("predictor.csv");
 bool firstInputs = 1;
 
+double leftVelocity;
+double rightVelocity;
+double differentialVelocity;
+
 void run_samanet(cv::Mat &statFrame, std::vector<double> &predictorDeltas, double error) {
 using namespace std::chrono;
 milliseconds ms = duration_cast<milliseconds>(system_clock::now().time_since_epoch());

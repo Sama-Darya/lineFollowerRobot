@@ -40,7 +40,7 @@ void loop() {
 		speedCommand[i] = Serial.read();
 	}
     servoLeft.writeMicroseconds(speedLeft + (int)speedCommand[0] + (int)speedCommand[1] );
-    servoRight.writeMicroseconds(speedRight + (int)speedCommand[0] - (int)speedCommand[2]);
+    servoRight.writeMicroseconds(speedRight + (int)speedCommand[0] + (int)speedCommand[2]);
     sensorBuffer[8]= 0;
     for (int i=0; i < numSensors; i++){
       sensorValues[i] = analogRead(sensors[i]);

@@ -81,8 +81,8 @@ int main(int, char **) {
 
       external->onStepCompleted(statFrame, sensorError, predictorDeltaMeans);
       
-      int mainLeftVelocity = 30; //external->getExtLeftVelocity();
-      int mainRightVelocity = -30; //external->getExtRightVelocity();
+      int mainLeftVelocity = 0; //external->getExtLeftVelocity();
+      int mainRightVelocity = 0; //external->getExtRightVelocity();
       int mainDifferentialVelocity = 0; //external->getExtDifferentialVelocity();
       
       char charLeftVelocity = (char)mainLeftVelocity;
