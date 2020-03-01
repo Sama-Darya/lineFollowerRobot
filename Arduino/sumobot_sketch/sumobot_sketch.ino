@@ -30,17 +30,12 @@ void setup() {
   servoLeft.writeMicroseconds(speedLeft);
   servoRight.writeMicroseconds(speedRight);
   }
-  
-char speedCommand[3] = {0};
-
+char speedCommand = {0};
 void loop() {
   while(Serial.available() > 0){
-	int availableBytes = Serial.available();
-	for (int i=0; i<availableBytes; i++){
-		speedCommand[i] = Serial.read();
-	}
-    servoLeft.writeMicroseconds(speedLeft + (int)speedCommand[0] + (int)speedCommand[1] );
-    servoRight.writeMicroseconds(speedRight + (int)speedCommand[0] + (int)speedCommand[2]);
+    speedCommand = Serial.read();
+    servoLeft.writeMicroseconds(speedLeft + (int)speedCommand);
+    servoRight.writeMicroseconds(speedRight + (int)speedCommand);
     sensorBuffer[8]= 0;
     for (int i=0; i < numSensors; i++){
       sensorValues[i] = analogRead(sensors[i]);

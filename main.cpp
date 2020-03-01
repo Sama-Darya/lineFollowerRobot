@@ -45,7 +45,9 @@ int main(int, char **) {
     return Ret; // ... quit the application
   }
   char startChar = {'d'};
+  cout << "before start: " << (int)Ret << endl;
   Ret = LS.Write(&startChar, sizeof(startChar)); //start the communication
+  cout << "after start: " << (int)Ret << endl;
   printf("Serial port opened successfully !\n");
   VideoCapture cap(0); //0 for Rpi camera
   if (!cap.isOpened()) {
@@ -67,21 +69,26 @@ int main(int, char **) {
     // getting the error signal form sensors
     sensorCHAR.clear();
     char sensorRAW[9]= {'a','a','a','a','a','a','a','a','a'};
+    //cout << "before read: " << (int)Ret << endl;
     Ret = LS.Read(&sensorRAW, sizeof(sensorRAW));
+    //cout << "after read: " << (int)Ret << endl;
     for (int i = 0 ; i<9; i++){
       sensorCHAR.push_back(sensorRAW[i]);
     }
     double sensorError = external->calcError(statFrame, sensorCHAR);
     if (Ret > 0){
       external->onStepCompleted(statFrame, sensorError, predictorDeltaMeans);
-      int mainLeftVelocity = external->getExtLeftVelocity();
-      int mainRightVelocity = external->getExtRightVelocity();
-      int mainDifferentialVelocity = external->getExtDifferentialVelocity();
+      int mainLeftVelocity = 1; //external->getExtLeftVelocity();
+      int mainRightVelocity = 1; //external->getExtRightVelocity();
+      int mainDifferentialVelocity = 1; //external->getExtDifferentialVelocity();
       char charLeftVelocity = (char)mainLeftVelocity;
       char charRightVelocity = (char)mainRightVelocity;
       char charDifferentialVelocity = (char)mainDifferentialVelocity;
-      char speedErrorChar[3] = {charDifferentialVelocity, charLeftVelocity, charRightVelocity};
-      Ret = LS.Write(&speedErrorChar, sizeof(speedErrorChar));
+      char startMarker = char(100); 
+      //char speedErrorChar[4] = {startMarker, charDifferentialVelocity, charLeftVelocity , charRightVelocity};
+      //cout << "before write: " << (int)Ret << endl;
+      Ret = LS.Write(&startMarker, sizeof(startMarker));
+      //cout << "after write: " << (int)Ret << endl;
     }
     // Show everything on the screen
     cvui::update();

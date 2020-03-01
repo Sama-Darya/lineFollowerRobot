@@ -158,10 +158,10 @@ double Extern::calcError(cv::Mat &statFrame, vector<char> &sensorCHAR){
       m[i] = (mapWhite - mapBlack)/(diffCalib[i]);
       sensorVAL[i] = m[i] * (sensorINT[remainIndex] - calibBlack[i]) + mapBlack;
       assert(std::isfinite(sensorVAL[i]));
-      // cout << colorName[i] << " Bcal: " << (int)calibBlack[i] << " " << (int)threshBlack[i]
-      //       << " raw: " << (int)sensorINT[remainIndex]
-      //       << " Wcal: " << (int)threshWhite[i] << " " << (int)calibWhite[i]
-      //       << " cal: " << (int)sensorVAL[i] << endl;
+       //cout << colorName[i] << " Bcal: " << (int)calibBlack[i] << " " << (int)threshBlack[i]
+             //<< " raw: " << (int)sensorINT[remainIndex]
+             //<< " Wcal: " << (int)threshWhite[i] << " " << (int)calibWhite[i]
+             //<< " cal: " << (int)sensorVAL[i] << endl;
 
     }
     //cout << " ------------------------------- "<< endl;
