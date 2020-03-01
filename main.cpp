@@ -44,7 +44,7 @@ int main(int, char **) {
     printf("Error while opening port. Permission problem?\n");
     return Ret; // ... quit the application
   }
-  char startChar = {'d'};
+  char startChar[4] = {'0','0','0','0'};
   cout << "before start: " << (int)Ret << endl;
   Ret = LS.Write(&startChar, sizeof(startChar)); //start the communication
   cout << "after start: " << (int)Ret << endl;
@@ -84,10 +84,10 @@ int main(int, char **) {
       char charLeftVelocity = (char)mainLeftVelocity;
       char charRightVelocity = (char)mainRightVelocity;
       char charDifferentialVelocity = (char)mainDifferentialVelocity;
-      char startMarker = char(100); 
-      //char speedErrorChar[4] = {startMarker, charDifferentialVelocity, charLeftVelocity , charRightVelocity};
+      char startMarker = char(1); 
+      char speedErrorChar[4] = {startMarker, charDifferentialVelocity, charLeftVelocity , charRightVelocity};
       //cout << "before write: " << (int)Ret << endl;
-      Ret = LS.Write(&startMarker, sizeof(startMarker));
+      Ret = LS.Write(&speedErrorChar, sizeof(speedErrorChar));
       //cout << "after write: " << (int)Ret << endl;
     }
     // Show everything on the screen
