@@ -16,7 +16,12 @@
 using namespace std;
 
 std::vector<std::array<Bandpass, 5>> bandpassFilters;
+#ifdef RAW_PRED
+const int numPred = 96;
+#endif
+#ifndef RAW_PRED
 const int numPred = 48;
+#endif
 boost::circular_buffer<double> predVector1[numPred];
 boost::circular_buffer<double> predVector2[numPred];
 boost::circular_buffer<double> predVector3[numPred];
@@ -24,18 +29,16 @@ boost::circular_buffer<double> predVector4[numPred];
 boost::circular_buffer<double> predVector5[numPred];
 
 static void initialize_filters(int numInputs, double sampleRate) {
-
   int nPred = numInputs / 5;
   int delayFactor[8] = {17,16,15,14,13,12,11,10};
   for (int i = 0; i < nPred; i++){
-    int j= (int)(i / 6);
+    //int j= (int)(i / 6);
     predVector1[i].rresize(1); //delayFactor[j]-5);
     predVector2[i].rresize(2); //delayFactor[j]-3);
     predVector3[i].rresize(3); //delayFactor[j]+0);
     predVector4[i].rresize(4); //delayFactor[j]+3);
     predVector5[i].rresize(5); //delayFactor[j]+5);
   }
-
   bandpassFilters.resize(numInputs);
   double fs = 1;
   int minT = 100;
@@ -48,7 +51,6 @@ static void initialize_filters(int numInputs, double sampleRate) {
     for (auto &filt : bank) {
       filt.setParameters(f, 0.51);
       f += df;
-
       for(int k=0;k<maxT;k++){
         double a = 0;
         if (k==minT){
@@ -59,7 +61,6 @@ static void initialize_filters(int numInputs, double sampleRate) {
         assert(b != INFINITY);
       }
       filt.reset();
-
     }
   }
 }
@@ -170,4 +171,5 @@ double getResults(int returnCase){
       return rightVelocity;
     break;
   }
+  return 0;
 }

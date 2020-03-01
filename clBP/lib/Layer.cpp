@@ -36,6 +36,7 @@ Layer::Layer(int _nNeurons, int _nInputs){
     }
     /* each element of "neurons" pointer is itself a pointer
      * to a neuron object with specific no. of inputs*/
+     //cout << "layer" << endl;
 }
 
 Layer::~Layer(){
@@ -216,6 +217,7 @@ double Layer::getGradient(Neuron::whichError _whichError, whichGradient _whichGr
             return minError;
             break;
     }
+    return 0;
 }
 
 //*************************************************************************************

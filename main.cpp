@@ -52,13 +52,10 @@ int main(int, char **) {
     printf("The selected video capture device is not available.\n");
     return -1;
   }
-
-
     std::vector<double> predictorDeltaMeans;
     predictorDeltaMeans.reserve(nPredictors);
     std::vector<char> sensorCHAR;
     sensorCHAR.reserve(9);
-
   for (;;) {
     //getting the predictor signals from the camera
     statFrame = cv::Scalar(100, 100, 100);
@@ -76,20 +73,14 @@ int main(int, char **) {
     }
     double sensorError = external->calcError(statFrame, sensorCHAR);
     if (Ret > 0){
-      // int speedError = 100 + external->onStepCompleted(statFrame, sensorError, predictorDeltaMeans);
-      // char speedErrorChar = (char)speedError;
-
       external->onStepCompleted(statFrame, sensorError, predictorDeltaMeans);
-      
-      int mainLeftVelocity = 0; //external->getExtLeftVelocity();
-      int mainRightVelocity = 0; //external->getExtRightVelocity();
-      int mainDifferentialVelocity = 0; //external->getExtDifferentialVelocity();
-      
+      int mainLeftVelocity = external->getExtLeftVelocity();
+      int mainRightVelocity = external->getExtRightVelocity();
+      int mainDifferentialVelocity = external->getExtDifferentialVelocity();
       char charLeftVelocity = (char)mainLeftVelocity;
       char charRightVelocity = (char)mainRightVelocity;
       char charDifferentialVelocity = (char)mainDifferentialVelocity;
       char speedErrorChar[3] = {charDifferentialVelocity, charLeftVelocity, charRightVelocity};
-      
       Ret = LS.Write(&speedErrorChar, sizeof(speedErrorChar));
     }
     // Show everything on the screen

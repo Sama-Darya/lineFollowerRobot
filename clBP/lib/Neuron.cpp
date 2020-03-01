@@ -30,7 +30,7 @@ Neuron::Neuron(int _nInputs)
     inputErrors = new double[nInputs];
     inputMidErrors = new double[nInputs];
     echoErrors = new double[nInputs];
-
+    //cout << "neuron" << endl;
 
 }
 
@@ -244,7 +244,7 @@ double Neuron::getError(whichError _whichError){
             return (forwardError);
             break;
     }
-
+    return 0;
 }
 
 //*************************************************************************************

@@ -29,6 +29,7 @@ Net::Net(int _nLayers, int* _nNeurons, int _nInputs){
     layers= new Layer*[nLayers];
     int* nNeuronsp = _nNeurons; //number of neurons in each layer
     nInputs=_nInputs; // the no. of inputs to the network (i.e. the first layer)
+    //cout << "nInputs: " << nInputs << endl;
     int nInput = 0; //temporary variable to use within the scope of for loop
     for (int i=0; i<nLayers; i++){
         int numNeurons= *nNeuronsp; //no. neurons in this layer
@@ -44,6 +45,7 @@ Net::Net(int _nLayers, int* _nNeurons, int _nInputs){
     }
     nOutputs=layers[nLayers-1]->getnNeurons();
     errorGradient= new double[nLayers];
+    cout << "net" << endl;
 }
 
 Net::~Net(){

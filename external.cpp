@@ -54,15 +54,15 @@ int startLearning = 0;
 void Extern::onStepCompleted(cv::Mat &statFrame, double deltaSensorData, std::vector<double> &predictorDeltas) {
   prevErrors.push_back(deltaSensorData); //puts the errors in a buffer for plotting
 
-  double error = deltaSensorData;
+  double errorS = deltaSensorData;
   cvui::text(statFrame, 10, 250, "Sensor Error Multiplier: ");
   cvui::trackbar(statFrame, 180, 250, 400, &errorMult, (double)0.0, (double)10.0, 1, "%.2Lf", 0, 0.5);
   cvui::text(statFrame, 10, 300, "Net diff_Output Multiplier: ");
   cvui::trackbar(statFrame, 180, 300, 400, &diffMult, (double)0.0, (double)10.0, 1, "%.2Lf", 0, 0.5);
     cvui::text(statFrame, 10, 350, "Net velocity_Output Multiplier: ");
   cvui::trackbar(statFrame, 180, 350, 400, &velocityMult, (double)0, (double)10, 1, "%.2Lf", 0, 0.5);
-  assert(std::isfinite(error));
-  run_samanet(statFrame, predictorDeltas, error);
+  assert(std::isfinite(errorS));
+  run_samanet(statFrame, predictorDeltas, errorS);
   double difftemp = getResults(0);
   extLeftVelocity = velocityMult * getResults(1);
   extRightVelocity = velocityMult * getResults(2);
@@ -78,12 +78,12 @@ void Extern::onStepCompleted(cv::Mat &statFrame, double deltaSensorData, std::ve
   cvui::text(statFrame, 220, 10, "Net out:");
   cvui::printf(statFrame, 300, 10, "%+.4lf (%+.4lf)", difftemp, difftemp * diffMult);
   cvui::text(statFrame, 220, 30, "Error:");
-  cvui::printf(statFrame, 300, 30, "%+.4lf (%+.4lf)", error, error * errorMult);
-  extDifferentialVelocity = error * errorMult + difftemp * diffMult;
+  cvui::printf(statFrame, 300, 30, "%+.4lf (%+.4lf)", errorS, errorS * errorMult);
+  extDifferentialVelocity = errorS * errorMult + difftemp * diffMult;
   using namespace std::chrono;
   milliseconds ms = duration_cast<milliseconds>(system_clock::now().time_since_epoch());
 
-  datafs << error << " "
+  datafs << errorS << " "
          << difftemp << " "
          << extDifferentialVelocity << "\n";
 }
@@ -284,9 +284,15 @@ double Extern::calcError(cv::Mat &statFrame, vector<char> &sensorCHAR){
     return error;
 }
 
-static constexpr int nPredictorCols = 6;
-static constexpr int nPredictorRows = 8;
-static constexpr int nPredictors = nPredictorCols * nPredictorRows;
+int nPredictorCols = 6;
+int nPredictorRows = 8;
+#ifdef RAW_PRED
+int predMULT = 2;
+#endif
+#ifndef RAW_PRED
+int predMULT = 1;
+#endif
+int nPredictors = predMULT * nPredictorCols * nPredictorRows;
 
 int Extern::getNpredictors (){
     return nPredictors;
@@ -331,13 +337,15 @@ void Extern::calcPredictors(Mat &frame, vector<double> &predictorDeltaMeans){
         if (grayMeanL > predThreshW[j][k] - predThreshWAdjustment){grayMeanL = predThreshW[j][k] - predThreshWAdjustment;}
         if (grayMeanR > predThreshW[j][k] - predThreshWAdjustment){grayMeanR = predThreshW[j][k] - predThreshWAdjustment;}
         double predScale = 5;
-        auto predValue = ((grayMeanL - grayMeanR) / predThreshWDiff) / predScale;
-        predictorDeltaMeans.push_back(predValue);
-        putText(frame, std::to_string((int)(grayMeanL - grayMeanR)),
+        auto predValueL = ((grayMeanL) / predThreshWDiff) / predScale;
+        auto predValueR = ((grayMeanR) / predThreshWDiff) / predScale;
+        predictorDeltaMeans.push_back(predValueL);
+        predictorDeltaMeans.push_back(predValueR);
+        putText(frame, std::to_string((int)(grayMeanL)),
                 Point{lPred.x + lPred.width / 2 - 13,
                       lPred.y + lPred.height / 2 + 5},
                 FONT_HERSHEY_TRIPLEX, 0.4, {0, 0, 0});
-        putText(frame, std::to_string((int)grayMeanR),
+        putText(frame, std::to_string((int)(grayMeanR)),
                 Point{rPred.x + rPred.width / 2 - 13,
                       rPred.y + rPred.height / 2 + 5},
                 FONT_HERSHEY_TRIPLEX, 0.4, {0, 0, 0});
