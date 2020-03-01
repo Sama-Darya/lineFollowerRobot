@@ -88,16 +88,16 @@ void Extern::onStepCompleted(cv::Mat &statFrame, double deltaSensorData, std::ve
          << extDifferentialVelocity << "\n";
 }
 
-int Extern::getExtDifferentialVelocity(){
-  return (int)extDifferentialVelocity;
+int16_t Extern::getExtDifferentialVelocity(){
+  return extDifferentialVelocity;
 }
 
-int Extern::getExtLeftVelocity(){
-  return (int)extLeftVelocity;
+int16_t Extern::getExtLeftVelocity(){
+  return extLeftVelocity;
 }
 
-int Extern::getExtRightVelocity(){
-  return (int)extRightVelocity;
+int16_t Extern::getExtRightVelocity(){
+  return extRightVelocity;
 }
 Bandpass sensorFilters[8];
 double cutOff = 10;

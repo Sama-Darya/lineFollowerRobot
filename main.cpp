@@ -74,20 +74,19 @@ int main(int, char **) {
     //cout << "after read: " << (int)Ret << endl;
     for (int i = 0 ; i<9; i++){
       sensorCHAR.push_back(sensorRAW[i]);
+      cout << "return: " << sensorRAW[i] << endl;
     }
+    cout << "....................." << endl;
     double sensorError = external->calcError(statFrame, sensorCHAR);
     if (Ret > 0){
       external->onStepCompleted(statFrame, sensorError, predictorDeltaMeans);
-      int mainLeftVelocity = 1; //external->getExtLeftVelocity();
-      int mainRightVelocity = 1; //external->getExtRightVelocity();
-      int mainDifferentialVelocity = 1; //external->getExtDifferentialVelocity();
-      char charLeftVelocity = (char)mainLeftVelocity;
-      char charRightVelocity = (char)mainRightVelocity;
-      char charDifferentialVelocity = (char)mainDifferentialVelocity;
-      char startMarker = char(1); 
-      char speedErrorChar[4] = {startMarker, charDifferentialVelocity, charLeftVelocity , charRightVelocity};
+        int16_t mainDifferentialVelocity = -999; //external->getExtDifferentialVelocity();
+        int16_t mainLeftVelocity = -99; //external->getExtLeftVelocity();
+        int16_t mainRightVelocity = -9; //external->getExtRightVelocity();
+        int16_t startMarker = 9999;
+        int16_t speedError[4] = {startMarker, mainDifferentialVelocity, mainLeftVelocity , mainRightVelocity};
       //cout << "before write: " << (int)Ret << endl;
-      Ret = LS.Write(&speedErrorChar, sizeof(speedErrorChar));
+      Ret = LS.Write(&speedError, sizeof(speedError));
       //cout << "after write: " << (int)Ret << endl;
     }
     // Show everything on the screen

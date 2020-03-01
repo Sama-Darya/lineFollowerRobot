@@ -25,9 +25,9 @@ class Extern {
 	double calcError(Mat &statFrame, vector<char> &sensorCHAR);
 	void calcPredictors(Mat &frame, vector<double> &predictorDeltaMeans);
 	int getNpredictors();
-	int getExtDifferentialVelocity();
-	int getExtLeftVelocity();
-	int getExtRightVelocity();
+    int16_t getExtDifferentialVelocity();
+    int16_t getExtLeftVelocity();
+    int16_t getExtRightVelocity();
 
 	private:
 	using clk = std::chrono::system_clock;
@@ -39,8 +39,8 @@ class Extern {
 	double calibWhite[8+1]  = {150,160,160,160,   160,160,160,150,2}; //x2 Red,Orange,Yellow,Green,Blue,Violet,Pink,White
 	double diffCalib[8+1]   = {1,1,1,1,           1,1,1,1,1};
 
-	double extLeftVelocity;
-	double extRightVelocity;
-	double extDifferentialVelocity;
+    int16_t extLeftVelocity;
+    int16_t extRightVelocity;
+    int16_t extDifferentialVelocity;
 
 };
