@@ -60,7 +60,7 @@ void Neuron::initNeuron(int _neuronIndex, int _layerIndex, weightInitMethod _wim
                 weights[i] = 1;
                 break;
             case W_RANDOM:
-                weights[i] = (((double) rand() / (RAND_MAX)));// * 2)-1;
+                weights[i] = (((double) rand() / (RAND_MAX))); //* 2)-1;
                 break;
                 //cout << " Neuron: weight is: " << weights[i] << endl;
                 /* rand function generates a random function between

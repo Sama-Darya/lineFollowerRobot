@@ -28,6 +28,7 @@
 using namespace cv;
 using namespace std;
 constexpr int ESC_key = 27;
+const int numSens9 = 9;
 
 int main(int, char **) {
   Extern* external = NULL;
@@ -44,10 +45,8 @@ int main(int, char **) {
     printf("Error while opening port. Permission problem?\n");
     return Ret; // ... quit the application
   }
-  char startChar[4] = {'0','0','0','0'};
-  cout << "before start: " << (int)Ret << endl;
+  char startChar = {'d'};
   Ret = LS.Write(&startChar, sizeof(startChar)); //start the communication
-  cout << "after start: " << (int)Ret << endl;
   printf("Serial port opened successfully !\n");
   VideoCapture cap(0); //0 for Rpi camera
   if (!cap.isOpened()) {
@@ -56,8 +55,8 @@ int main(int, char **) {
   }
     std::vector<double> predictorDeltaMeans;
     predictorDeltaMeans.reserve(nPredictors);
-    std::vector<char> sensorCHAR;
-    sensorCHAR.reserve(9);
+    std::vector<uint8_t> sensorsArray;
+    sensorsArray.reserve(numSens9);
   for (;;) {
     //getting the predictor signals from the camera
     statFrame = cv::Scalar(100, 100, 100);
@@ -67,28 +66,34 @@ int main(int, char **) {
     predictorDeltaMeans.clear();
     external->calcPredictors(frame, predictorDeltaMeans);
     // getting the error signal form sensors
-    sensorCHAR.clear();
-    char sensorRAW[9]= {'a','a','a','a','a','a','a','a','a'};
-    //cout << "before read: " << (int)Ret << endl;
-    Ret = LS.Read(&sensorRAW, sizeof(sensorRAW));
-    //cout << "after read: " << (int)Ret << endl;
-    for (int i = 0 ; i<9; i++){
-      sensorCHAR.push_back(sensorRAW[i]);
-      cout << "return: " << sensorRAW[i] << endl;
+    sensorsArray.clear();
+    uint8_t readToThis[numSens9] = {0,0,0,0,0,0,0,0,0};
+    Ret = LS.Read(&readToThis, sizeof(readToThis));
+    for (int i = 0 ; i < numSens9; i++){
+      sensorsArray.push_back(readToThis[i]);
+      //cout << "return: " << (int16_t)readToThis[i] << endl;
     }
-    cout << "....................." << endl;
-    double sensorError = external->calcError(statFrame, sensorCHAR);
+    //cout << "....................." << endl;
+
+    //confirm serial communication
+    /*
+    int16_t repeatSignal[4] = {0,0,0,0};
+    Ret = LS.Read(&repeatSignal, sizeof(repeatSignal));
+    for (int i = 0 ; i < 4; i++){
+      cout << "return: " << repeatSignal[i] << endl;
+    }
+    cout << "....................." << endl;*/
+
+    double sensorError = external->calcError(statFrame, sensorsArray);
     if (Ret > 0){
-      external->onStepCompleted(statFrame, sensorError, predictorDeltaMeans);
-        int16_t mainDifferentialVelocity = -999; //external->getExtDifferentialVelocity();
-        int16_t mainLeftVelocity = -99; //external->getExtLeftVelocity();
-        int16_t mainRightVelocity = -9; //external->getExtRightVelocity();
-        int16_t startMarker = 9999;
-        int16_t speedError[4] = {startMarker, mainDifferentialVelocity, mainLeftVelocity , mainRightVelocity};
-      //cout << "before write: " << (int)Ret << endl;
-      Ret = LS.Write(&speedError, sizeof(speedError));
-      //cout << "after write: " << (int)Ret << endl;
-    }
+      int speedError = external->onStepCompleted(statFrame, sensorError, predictorDeltaMeans);
+      int16_t mainDifferentialVelocity = (int16_t)speedError;
+      int16_t mainLeftVelocity = 0;
+      int16_t mainRightVelocity = 0;
+      int16_t startMarker = 32767;
+      int16_t speedErrorArray[4] = {mainDifferentialVelocity, mainLeftVelocity , mainRightVelocity, startMarker};
+    Ret = LS.Write(&speedErrorArray, sizeof(speedErrorArray));
+  }
     // Show everything on the screen
     cvui::update();
     cv::imshow(STAT_WINDOW, statFrame);

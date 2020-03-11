@@ -47,26 +47,27 @@ boost::circular_buffer<double> sensor7(samplingFreq * figureLength);
 std::ofstream datafs("speedDiffdata.csv");
 
 double errorMult = 2;
-double diffMult = 1;
-double velocityMult = 1;
+double nnMult = 1;
+double nnMultScale = 0;
+int ampUp = 0;
 int startLearning = 0;
 
-void Extern::onStepCompleted(cv::Mat &statFrame, double deltaSensorData, std::vector<double> &predictorDeltas) {
+int Extern::onStepCompleted(cv::Mat &statFrame, double deltaSensorData, std::vector<double> &predictorDeltas) {
   prevErrors.push_back(deltaSensorData); //puts the errors in a buffer for plotting
 
-  double errorS = deltaSensorData;
+  double error = deltaSensorData;
   cvui::text(statFrame, 10, 250, "Sensor Error Multiplier: ");
   cvui::trackbar(statFrame, 180, 250, 400, &errorMult, (double)0.0, (double)10.0, 1, "%.2Lf", 0, 0.5);
-  cvui::text(statFrame, 10, 300, "Net diff_Output Multiplier: ");
-  cvui::trackbar(statFrame, 180, 300, 400, &diffMult, (double)0.0, (double)10.0, 1, "%.2Lf", 0, 0.5);
-    cvui::text(statFrame, 10, 350, "Net velocity_Output Multiplier: ");
-  cvui::trackbar(statFrame, 180, 350, 400, &velocityMult, (double)0, (double)10, 1, "%.2Lf", 0, 0.5);
-  assert(std::isfinite(errorS));
-  run_samanet(statFrame, predictorDeltas, errorS);
-  double difftemp = getResults(0);
-  extLeftVelocity = velocityMult * getResults(1);
-  extRightVelocity = velocityMult * getResults(2);
-
+  cvui::text(statFrame, 10, 300, "Net Output Multiplier: ");
+  cvui::trackbar(statFrame, 180, 300, 400, &nnMult, (double)0.0, (double)10.0, 1, "%.2Lf", 0, 0.5);
+	cvui::trackbar(statFrame, 180, 350, 400, &nnMultScale, (double)0, (double)20, 1, "%.2Lf", 0, 0.5);
+  assert(std::isfinite(error));
+  double errorGain = 1;
+  double errroForLearning = errorGain * error;
+  if (nnMult == 0){
+    errroForLearning = 0;
+  }
+  double result = run_samanet(statFrame, predictorDeltas, errroForLearning); //does one learning iteration, why divide by 5?
   {
     std::vector<double> error_list(prevErrors.begin(), prevErrors.end());
     cvui::sparkline(statFrame, error_list, 10, 50, 580, 200, 0x000000);
@@ -75,31 +76,28 @@ void Extern::onStepCompleted(cv::Mat &statFrame, double deltaSensorData, std::ve
     //cvui::printf(statFrame, 10, 250, "%.2fs", chart_start_t);
     //cvui::printf(statFrame, 540, 250, "%.2fs", elapsed_s);
   }
+  double reflex = error * errorMult;
+  double learning = result * nnMult * pow(10,nnMultScale);
   cvui::text(statFrame, 220, 10, "Net out:");
-  cvui::printf(statFrame, 300, 10, "%+.4lf (%+.4lf)", difftemp, difftemp * diffMult);
+  cvui::printf(statFrame, 300, 10, "%+.4lf (%+.4lf)", result, learning);
   cvui::text(statFrame, 220, 30, "Error:");
-  cvui::printf(statFrame, 300, 30, "%+.4lf (%+.4lf)", errorS, errorS * errorMult);
-  extDifferentialVelocity = errorS * errorMult + difftemp * diffMult;
+  cvui::printf(statFrame, 300, 30, "%+.4lf (%+.4lf)", deltaSensorData, reflex);
+  int gain = 1;
+  double errorSpeed = (reflex + learning) * gain;
   using namespace std::chrono;
   milliseconds ms = duration_cast<milliseconds>(system_clock::now().time_since_epoch());
 
-  datafs << errorS << " "
-         << difftemp << " "
-         << extDifferentialVelocity << "\n";
-}
+  datafs << deltaSensorData << " "
+         << error << " "
+         << reflex << " "
+         << result << " "
+         << learning << " "
+         << errorSpeed << "\n";
 
-int16_t Extern::getExtDifferentialVelocity(){
-  return extDifferentialVelocity;
-}
-
-int16_t Extern::getExtLeftVelocity(){
-  return extLeftVelocity;
-}
-
-int16_t Extern::getExtRightVelocity(){
-  return extRightVelocity;
+  return (int)errorSpeed;
 }
 Bandpass sensorFilters[8];
+
 double cutOff = 10;
 double sampFreq = 0.033;
 LowPassFilter lpf0(cutOff, sampFreq);
@@ -111,7 +109,7 @@ LowPassFilter lpf5(cutOff, sampFreq);
 LowPassFilter lpf6(cutOff, sampFreq);
 LowPassFilter lpf7(cutOff, sampFreq);
 
-const int loopLength = 500;
+const int loopLength = 250;
 boost::circular_buffer<double> aveError(loopLength); // each loop of path is 1500 samples
 boost::circular_buffer<double> integError(loopLength); // each loop of path is 1500 samples
 int checkSucess = 0;
@@ -131,7 +129,7 @@ int setFirstEncounter = 1;
 int firstEncounter = 0 ;
 
 
-double Extern::calcError(cv::Mat &statFrame, vector<char> &sensorCHAR){
+double Extern::calcError(cv::Mat &statFrame, vector<uint8_t> &sensorCHAR){
 	const int numSensors = 8;
 	int startIndex = 8;
 	int sensorINT[numSensors+1]= {0,0,0,0,0,0,0,0,0};
@@ -158,10 +156,10 @@ double Extern::calcError(cv::Mat &statFrame, vector<char> &sensorCHAR){
       m[i] = (mapWhite - mapBlack)/(diffCalib[i]);
       sensorVAL[i] = m[i] * (sensorINT[remainIndex] - calibBlack[i]) + mapBlack;
       assert(std::isfinite(sensorVAL[i]));
-       //cout << colorName[i] << " Bcal: " << (int)calibBlack[i] << " " << (int)threshBlack[i]
-             //<< " raw: " << (int)sensorINT[remainIndex]
-             //<< " Wcal: " << (int)threshWhite[i] << " " << (int)calibWhite[i]
-             //<< " cal: " << (int)sensorVAL[i] << endl;
+      // cout << colorName[i] << " Bcal: " << (int)calibBlack[i] << " " << (int)threshBlack[i]
+      //       << " raw: " << (int)sensorINT[remainIndex]
+      //       << " Wcal: " << (int)threshWhite[i] << " " << (int)calibWhite[i]
+      //       << " cal: " << (int)sensorVAL[i] << endl;
 
     }
     //cout << " ------------------------------- "<< endl;
@@ -254,20 +252,20 @@ double Extern::calcError(cv::Mat &statFrame, vector<char> &sensorCHAR){
       setFirstEncounter =0;
     }
     maxIntegral = max (maxIntegral,fabs(integAveError));
-    thresholdInteg = 0.1; // maxIntegral / 10;  //0.38;
+    thresholdInteg = 0.1; //maxIntegral / 3;
     stepCount += 1;
     checkSucess += 1;
 
-    if (diffMult == 0 && velocityMult == 0){ // this is for reflex only
+    if (nnMult == 0){ // this is for reflex
       if ( stepCount - firstEncounter > 5000 && successDone == 0){
         cout << "DONE! with Error Integral of: " << integAveError
         << ", with max Error of: " << maxIntegral << endl;
         successDone = 1;
-        successRatef << firstEncounter << " " << stepCount << " " << integAveError << " " << maxIntegral << "\n";
+        successRatef << firstEncounter << " " << stepCount - firstEncounter << " " << integAveError << " " << maxIntegral << "\n";
         //throw
       }
-    }else{ // this is for learning runs
-      if (checkSucess > loopLength && fabs(integAveError) < thresholdInteg && successDone == 0){
+    }else{ // this is for learning
+      if (checkSucess > loopLength/5 && fabs(integAveError) < thresholdInteg && successDone == 0){
         consistency += 1;
         if (consistency > 100){
           cout << "SUCCESS! on Step: " << stepCount - firstEncounter
@@ -284,15 +282,9 @@ double Extern::calcError(cv::Mat &statFrame, vector<char> &sensorCHAR){
     return error;
 }
 
-int nPredictorCols = 6;
-int nPredictorRows = 8;
-#ifdef RAW_PRED
-int predMULT = 2;
-#endif
-#ifndef RAW_PRED
-int predMULT = 1;
-#endif
-int nPredictors = predMULT * nPredictorCols * nPredictorRows;
+static constexpr int nPredictorCols = 6;
+static constexpr int nPredictorRows = 8;
+static constexpr int nPredictors = nPredictorCols * nPredictorRows;
 
 int Extern::getNpredictors (){
     return nPredictors;
@@ -337,15 +329,13 @@ void Extern::calcPredictors(Mat &frame, vector<double> &predictorDeltaMeans){
         if (grayMeanL > predThreshW[j][k] - predThreshWAdjustment){grayMeanL = predThreshW[j][k] - predThreshWAdjustment;}
         if (grayMeanR > predThreshW[j][k] - predThreshWAdjustment){grayMeanR = predThreshW[j][k] - predThreshWAdjustment;}
         double predScale = 5;
-        auto predValueL = ((grayMeanL) / predThreshWDiff) / predScale;
-        auto predValueR = ((grayMeanR) / predThreshWDiff) / predScale;
-        predictorDeltaMeans.push_back(predValueL);
-        predictorDeltaMeans.push_back(predValueR);
-        putText(frame, std::to_string((int)(grayMeanL)),
+        auto predValue = ((grayMeanL - grayMeanR) / predThreshWDiff) / predScale;
+        predictorDeltaMeans.push_back(predValue);
+        putText(frame, std::to_string((int)(grayMeanL - grayMeanR)),
                 Point{lPred.x + lPred.width / 2 - 13,
                       lPred.y + lPred.height / 2 + 5},
                 FONT_HERSHEY_TRIPLEX, 0.4, {0, 0, 0});
-        putText(frame, std::to_string((int)(grayMeanR)),
+        putText(frame, std::to_string((int)grayMeanR),
                 Point{rPred.x + rPred.width / 2 - 13,
                       rPred.y + rPred.height / 2 + 5},
                 FONT_HERSHEY_TRIPLEX, 0.4, {0, 0, 0});
