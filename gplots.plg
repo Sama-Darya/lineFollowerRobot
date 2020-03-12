@@ -6,7 +6,7 @@ set grid
 set size 0.5,0.75
 set origin 0,0
 set title setMyTitle
-plot for [col=1:3:2] "errorSuccessData.csv" using 0:col with lines notitle
+plot for [col=1:2] "errorSuccessData.csv" using 0:col with lines notitle
 
 # **** Weights ****
 set size 0.5,0.75

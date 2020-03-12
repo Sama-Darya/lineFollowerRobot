@@ -109,24 +109,23 @@ LowPassFilter lpf5(cutOff, sampFreq);
 LowPassFilter lpf6(cutOff, sampFreq);
 LowPassFilter lpf7(cutOff, sampFreq);
 
-const int loopLength = 250;
-boost::circular_buffer<double> aveError(loopLength); // each loop of path is 1500 samples
-boost::circular_buffer<double> integError(loopLength); // each loop of path is 1500 samples
+const int loopLength = 800;
+boost::circular_buffer<double> movingIntegralVector(loopLength); // each loop of path is 1500 samples
 int checkSucess = 0;
 int consistency = 0;
-int stepCount = 0;
+int stepCount = 1;
 int successDone = 0;
 
 std::ofstream errorSuccessDatafs("errorSuccessData.csv");
 std::ofstream successRatef("successTime.csv");
 
-
 int sensorInUse = 4;
 double thresholdInteg = 10.2;
 int getThreshold = 1;
-double maxIntegral = 0;
+double maxMovingIntegral = 0;
 int setFirstEncounter = 1;
 int firstEncounter = 0 ;
+double totalIntegral = 0;
 
 
 double Extern::calcError(cv::Mat &statFrame, vector<uint8_t> &sensorCHAR){
@@ -234,51 +233,58 @@ double Extern::calcError(cv::Mat &statFrame, vector<uint8_t> &sensorCHAR){
     cvui::sparkline(statFrame, sensor_list7, 10, 50, 580, 200, 0xffffff);
 
     //average the error over the last N samples:
-    aveError.push_back(error);
-    double sumError = std::accumulate(aveError.begin(), aveError.end(), 0.00);
-    double averageError = sumError/loopLength;
-    double CenteredError = error - averageError;
-    //integrate the error over the last N samples:
-    integError.push_back(fabs(CenteredError));
-    double inteSumError = std::accumulate(integError.begin(), integError.end(), 0.00);
-    double integAveError = inteSumError/loopLength;
-
-    errorSuccessDatafs << error << " "
-           << CenteredError << " "
-           << integAveError << "\n";
-
+    stepCount += 1;
+    checkSucess += 1;
     if (fabs(error) > 0.01 && setFirstEncounter == 1){
       firstEncounter = stepCount;
       setFirstEncounter =0;
     }
-    maxIntegral = max (maxIntegral,fabs(integAveError));
-    thresholdInteg = 0.01; //maxIntegral / 3;
-    stepCount += 1;
-    checkSucess += 1;
+    movingIntegralVector.push_back(abs(error));
+    double movingIntegralSum = std::accumulate(movingIntegralVector.begin(), movingIntegralVector.end(), 0.00);
+    double movingIntegralAve = movingIntegralSum/loopLength;
+    totalIntegral += abs(error);
+    double totalIntegralAve = totalIntegral/stepCount;
+    maxMovingIntegral = max (maxMovingIntegral,fabs(movingIntegralAve));
+    thresholdInteg = 0.1; //
+
+    errorSuccessDatafs << error << " "
+           << movingIntegralAve << "\n";
+    
+    int actualSteps = stepCount-firstEncounter;
+    cvui::text(statFrame, 100, 20, "Step:");
+    cvui::printf(statFrame, 150, 20, "%d", actualSteps);
 
     if (nnMult == 0){ // this is for reflex
-      if ( stepCount - firstEncounter > 5000 && successDone == 0){
-        cout << "DONE! with Error Integral of: " << integAveError
-        << ", with max Error of: " << maxIntegral << endl;
+      if ( stepCount - firstEncounter > loopLength * 2 && successDone == 0){
+          cout << "DONE!" << endl;
+          cout << "movingIntegralAve: " << movingIntegralAve << endl;
+          cout << "maxMovingIntegral: " << maxMovingIntegral << endl;
+          cout << "totalIntegral: " << totalIntegral << endl;
+          cout << "totalIntegralAve: " << totalIntegralAve << endl;
         successDone = 1;
-        successRatef << firstEncounter << " " << stepCount - firstEncounter << " " << integAveError << " " << maxIntegral << "\n";
-        //throw
+        successRatef << firstEncounter << " " << actualSteps 
+                    << " " << movingIntegralAve << " " << maxMovingIntegral 
+                    << " " << totalIntegral << " " << totalIntegralAve << "\n";
+        exit(19);
       }
     }else{ // this is for learning
-      if (checkSucess > 100 && fabs(integAveError) < thresholdInteg && successDone == 0){
+      if (checkSucess > firstEncounter + loopLength/2 && fabs(movingIntegralAve) < thresholdInteg && successDone == 0){
+          //start checking for success 100 steps after it has seen the line first
         consistency += 1;
-        if (consistency > 100){
-          cout << "SUCCESS! on Step: " << stepCount - firstEncounter
-          << ", with Error Integral of: " << integAveError
-          << ", with max Error of: " << maxIntegral << endl;
+        if (consistency > 1){ 
+          cout << "SUCCESS! on Step: " << actualSteps << endl;
+          cout << "movingIntegralAve: " << movingIntegralAve << endl;
+          cout << "maxMovingIntegral: " << maxMovingIntegral << endl;
+          cout << "totalIntegral: " << totalIntegral << endl;
+          cout << "totalIntegralAve: " << totalIntegralAve << endl;
           successDone = 1;
-          successRatef << firstEncounter << " " << stepCount - firstEncounter << " " << integAveError << " " << maxIntegral << "\n";
-          //throw;
+          successRatef << firstEncounter << " " << stepCount - firstEncounter 
+                    << " " << movingIntegralAve << " " << maxMovingIntegral
+                    << " " << totalIntegral << " " << totalIntegralAve << "\n";                    
+          exit(14);
         }
       }else{consistency = 0;}
     }
-
-    assert(std::isfinite(CenteredError));
     return error;
 }
 
