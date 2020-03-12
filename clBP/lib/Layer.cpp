@@ -98,7 +98,7 @@ void Layer::propInputs(int _index, double _value){
 
 void Layer::calcOutputs(){
     for (int i=0; i<nNeurons; i++){
-        neurons[i]->calcOutput();
+        layerHasReported = neurons[i]->calcOutput(layerHasReported);
     }
 }
 

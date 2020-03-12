@@ -12,6 +12,11 @@
 #include <vector>
 #include <numeric>
 #include <boost/circular_buffer.hpp>
+#include <math.h>
+#include <ctgmath>
+
+
+
 
 using namespace std;
 
@@ -65,22 +70,34 @@ static void initialize_filters(int numInputs, double sampleRate) {
 }
 
 std::unique_ptr<Net> samanet;
-const int numLayers = 12;
+const int numLayers = 11;
 
 void initialize_samanet(int numInputLayers, double sampleRate) {
   numInputLayers *= 5; // 5 is the number of filters
   int numNeurons[numLayers]= {};
   int firstLayer = 11;
-  int decrementLayer = 0;
-  for (int i=0; i < numLayers - 1; i++){
-    numNeurons[i] = firstLayer - i * decrementLayer;
-    assert(numNeurons[i] > 3);
+  int lastHiddenLayer = 4;
+  int incrementLayer = 1;
+  int decrementLayer = 1;
+  //int fibonacci1 = 1;
+  //int fibonacci2 = 2;
+  int totalNeurons = 0;
+  numNeurons[numLayers - 1] = 3;
+  for (int i = numLayers - 2; i >= 0; i--){
+    //int addition = fibonacci2 + fibonacci1;
+    numNeurons[i] = lastHiddenLayer + (numLayers - 2 - i)  * incrementLayer;
+    totalNeurons += numNeurons[i];
+    //fibonacci1 = fibonacci2; // 3 , 5
+    //fibonacci2 = addition; // 5, 8
+    assert(numNeurons[i] > 0);
   }
-  numNeurons[numLayers - 1] = 3; //output layer
+  //cout << numNeurons[0] << " neurons in first layer, total of: " << totalNeurons << endl;
+  //numNeurons[numLayers - 1] = 3; //output layer
 
   samanet = std::make_unique<Net>(numLayers, numNeurons, numInputLayers);
   samanet->initNetwork(Neuron::W_RANDOM, Neuron::B_NONE, Neuron::Act_Sigmoid);
-  double myLearningRate = 2 * pow(10,-2);
+  double myLearningRate = exp(-1);
+  cout << "myLearningRate: " << myLearningRate << endl;
   samanet->setLearningRate(myLearningRate);
   initialize_filters(numInputLayers, sampleRate);
 }
@@ -151,18 +168,21 @@ double run_samanet(cv::Mat &statFrame, std::vector<double> &predictorDeltas, dou
   samanet->setInputs(networkInputs.data()); //then take a new action
   samanet->propInputs();
   samanet->snapWeights();
+  double compensationScale = 1;
   for (int i = 0; i <numLayers; i++){
-    weightDistancesfs << samanet->getLayerWeightDistance(i) << " ";
+    if (i == 0){
+      compensationScale = 0.01;
+    }
+    weightDistancesfs << compensationScale * samanet->getLayerWeightDistance(i) << " ";
+    compensationScale = 1;
   }
-  weightDistancesfs << samanet->getWeightDistance() << "\n";
+  weightDistancesfs << 0.01 * samanet->getWeightDistance() << "\n";
 
   double coeff[4] = {1,3,5};
   double outSmall = samanet->getOutput(0);
   double outMedium = samanet->getOutput(1);
   double outLarge = samanet->getOutput(2);
-  //double outExtraLarge = samanet->getOutput(3);
-  //cout << "Final Errors " << outSmall << " " << outMedium << " " << outLarge << " " << outExtraLarge << endl;
 
-  double resultNN = (coeff[0] * outSmall) + (coeff[1] * outMedium) + (coeff[2] * outLarge); // + (coeff[3] * outExtraLarge);
+  double resultNN = (coeff[0] * outSmall) + (coeff[1] * outMedium) + (coeff[2] * outLarge);
   return resultNN;
 }

@@ -38,7 +38,7 @@ public:
     //forward propagation of inputs:
     void setInput(int _index, double _value);
     void propInputs(int _index, double _value);
-    void calcOutput();
+    int calcOutput(int _layerHasReported);
 
     //->->forward->-> propagation of error:
     void setForwardError(double _value);
@@ -119,6 +119,8 @@ private:
     int myNeuronIndex = 0;
     double *initialWeights = 0;
     double learningRate = 0;
+    
+    int iHaveReported = 0;
 
     //forward propagation of inputs:
     double *inputs = 0;

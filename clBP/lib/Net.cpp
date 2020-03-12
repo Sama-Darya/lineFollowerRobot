@@ -45,7 +45,7 @@ Net::Net(int _nLayers, int* _nNeurons, int _nInputs){
     }
     nOutputs=layers[nLayers-1]->getnNeurons();
     errorGradient= new double[nLayers];
-    cout << "net" << endl;
+    //cout << "net" << endl;
 }
 
 Net::~Net(){

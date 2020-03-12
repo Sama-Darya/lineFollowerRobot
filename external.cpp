@@ -252,7 +252,7 @@ double Extern::calcError(cv::Mat &statFrame, vector<uint8_t> &sensorCHAR){
       setFirstEncounter =0;
     }
     maxIntegral = max (maxIntegral,fabs(integAveError));
-    thresholdInteg = 0.1; //maxIntegral / 3;
+    thresholdInteg = 0.01; //maxIntegral / 3;
     stepCount += 1;
     checkSucess += 1;
 
@@ -265,7 +265,7 @@ double Extern::calcError(cv::Mat &statFrame, vector<uint8_t> &sensorCHAR){
         //throw
       }
     }else{ // this is for learning
-      if (checkSucess > loopLength/5 && fabs(integAveError) < thresholdInteg && successDone == 0){
+      if (checkSucess > 100 && fabs(integAveError) < thresholdInteg && successDone == 0){
         consistency += 1;
         if (consistency > 100){
           cout << "SUCCESS! on Step: " << stepCount - firstEncounter
@@ -328,8 +328,8 @@ void Extern::calcPredictors(Mat &frame, vector<double> &predictorDeltaMeans){
         if (grayMeanR < predThreshW[j][k] - predThreshWDiff){grayMeanR = predThreshW[j][k] - predThreshWDiff;}
         if (grayMeanL > predThreshW[j][k] - predThreshWAdjustment){grayMeanL = predThreshW[j][k] - predThreshWAdjustment;}
         if (grayMeanR > predThreshW[j][k] - predThreshWAdjustment){grayMeanR = predThreshW[j][k] - predThreshWAdjustment;}
-        double predScale = 5;
-        auto predValue = ((grayMeanL - grayMeanR) / predThreshWDiff) / predScale;
+        double predScale = 0.1;
+        auto predValue = ((grayMeanL - grayMeanR) / predThreshWDiff) * predScale;
         predictorDeltaMeans.push_back(predValue);
         putText(frame, std::to_string((int)(grayMeanL - grayMeanR)),
                 Point{lPred.x + lPred.width / 2 - 13,

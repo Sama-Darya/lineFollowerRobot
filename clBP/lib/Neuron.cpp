@@ -9,8 +9,6 @@
 #include <fstream>
 #include <iostream>
 #include <math.h>
-#include <fstream>
-#include <iostream>
 #include <string>
 #include <numeric>
 #include <vector>
@@ -60,7 +58,7 @@ void Neuron::initNeuron(int _neuronIndex, int _layerIndex, weightInitMethod _wim
                 weights[i] = 1;
                 break;
             case W_RANDOM:
-                weights[i] = (((double) rand() / (RAND_MAX))); //* 2)-1;
+                weights[i] = (((double) rand() / (RAND_MAX))); //* 2) -1;
                 break;
                 //cout << " Neuron: weight is: " << weights[i] << endl;
                 /* rand function generates a random function between
@@ -123,18 +121,24 @@ void Neuron::propInputs(int _index,  double _value){
     inputs[_index] = _value;
 }
 
-void Neuron::calcOutput(){
+int Neuron::calcOutput(int _layerHasReported){
     sum=0;
     for (int i=0; i<nInputs; i++){
         sum += inputs[i] * weights[i];
     }
     sum += bias;
     if (myLayerIndex == 0){
-        sum = sum / 200;
+        sum = sum * 0.01;
     }
     assert(std::isfinite(sum));
     output = doActivation(sum);
+    iHaveReported = _layerHasReported;
+    if (output > 0.49 && iHaveReported == 0){
+        //cout << "I'm saturating, " << output << " layer: " << myLayerIndex << " neuron: " << myNeuronIndex << endl;
+        iHaveReported = 1;
+    }
     assert(std::isfinite(output));
+    return iHaveReported;
 }
 
 //*************************************************************************************
@@ -276,7 +280,7 @@ void Neuron::updateWeights(){
                     + echoCoeff      * echoError);
 
     for (int i=0; i<nInputs; i++){
-        weights[i] += learningRate * inputs[i] * overallError;
+        weights[i] += learningRate * inputs[i] * overallError * force;
         weightSum += fabs(weights[i]);
         maxWeight = max (maxWeight,weights[i]);
         minWeight = min (maxWeight,weights[i]);
