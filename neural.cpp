@@ -1,5 +1,5 @@
 #include "neural.h"
-#include "clbp/Net.h"
+#include "cldl/Net.h"
 #include "cvui.h"
 #include "bandpass.h"
 

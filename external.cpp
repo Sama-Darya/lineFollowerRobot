@@ -20,7 +20,6 @@
 #include <initializer_list>
 #include <memory>
 #include <opencv2/opencv.hpp>
-#include <string>
 #include <vector>
 
 using namespace std;

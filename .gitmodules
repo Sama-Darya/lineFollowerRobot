@@ -1,3 +1,6 @@
 [submodule "clBP"]
 	path = clBP
 	url = https://github.com/Sama-Darya/clBP.git
+[submodule "CLDL"]
+	path = CLDL
+	url = https://github.com/Sama-Darya/CLDL.git

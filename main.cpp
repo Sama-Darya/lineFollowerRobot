@@ -1,7 +1,5 @@
 #include "opencv2/opencv.hpp"
 #include "serialib.h"
-
-
 #include <boost/circular_buffer.hpp>
 #include <chrono>
 #include <cstdlib>
