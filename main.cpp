@@ -37,9 +37,9 @@ int main(int, char **) {
   cvui::init(STAT_WINDOW);
   auto statFrame = cv::Mat(400, 600, CV_8UC3);
   initialize_samanet(nPredictors);
-  serialib LS; // for arduino
+  serialib LS; // for Arduino
   char Ret = LS.Open(DEVICE_PORT, 115200); // for arduino
-  if (Ret != 1) { // If an error occured...
+  if (Ret != 1) { // If an error occurred...
     printf("Error while opening port. Permission problem?\n");
     return Ret; // ... quit the application
   }
