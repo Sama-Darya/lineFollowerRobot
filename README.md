@@ -22,6 +22,10 @@ Version 3, 29 June 2007
 (C) 2019,2020 Sama Darya <sama.darya.uk@gmail.com>
 
 ```
+## Citation
+
+[![DOI](https://zenodo.org/badge/244212401.svg)](https://zenodo.org/badge/latestdoi/244212401)
+
 ### The robot
 
 ![](robot.jpg)
